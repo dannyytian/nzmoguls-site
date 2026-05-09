@@ -21,7 +21,7 @@
 									<li><a href="../about.html">About</a></li>
 									<li><a href="../events.html">Events</a></li>
 									<li><a href="../membership.html">Membership</a></li>
-									<li><a href="../results.html">Results/Gallery</a></li>
+									<li><a href="../results-gallery.html">Results/Gallery</a></li>
 									<li><a href="../contact.html">Contact</a></li>
 								</ul>
 							</div>
@@ -55,24 +55,54 @@
 									<form method="post" action="#">
 										<div class="row gtr-uniform">
 											<div class="col-6 col-12-xsmall">
-												<label for="p-first">First Name</label>
-												<input type="text" id="p-first" value="John" />
+												<label for="firstName">First Name</label>
+												<input type="text" id="firstName" value="" placeholder="First Name" />
 											</div>
 											<div class="col-6 col-12-xsmall">
-												<label for="p-last">Last Name</label>
-												<input type="text" id="p-last" value="Doe" />
+												<label for="lastName">Last Name</label>
+												<input type="text" id="lastName" value="" placeholder="Last Name" />
 											</div>
 											<div class="col-12">
-												<label for="p-email">Email</label>
-												<input type="email" id="p-email" value="john.doe@example.com" />
+												<label for="email">Email</label>
+												<input type="email" id="email" value="" disabled />
+											</div>
+											<div class="col-6 col-12-xsmall">
+												<label for="birthMonth">Birth Month</label>
+												<select id="birthMonth">
+													<option value="">- Month -</option>
+												</select>
+											</div>
+											<div class="col-6 col-12-xsmall">
+												<label for="birthYear">Birth Year</label>
+												<select id="birthYear">
+													<option value="">- Year -</option>
+												</select>
 											</div>
 											<div class="col-12">
-												<label for="p-bio">Short Bio (Athlete Experience)</label>
-												<textarea name="p-bio" id="p-bio" rows="4"></textarea>
+												<label for="memberType">Membership Type</label>
+												<select id="memberType">
+													<option value="">- Select Membership Type -</option>
+													<option value="junior">Junior Athlete</option>
+													<option value="senior">Senior Athlete</option>
+													<option value="supporter">Supporter/Parent</option>
+												</select>
 											</div>
 											<div class="col-12">
-												<ul class="actions">
-													<li><input type="submit" value="Update Profile" class="primary" /></li>
+												<label for="guardian">Parent / Guardian Name</label>
+												<input type="text" id="guardian" placeholder="Parent Name" />
+											</div>
+											<div class="col-12">
+												<label for="phone">Contact Phone</label>
+												<input type="text" id="phone" placeholder="Phone Number" />
+											</div>
+											<div class="col-12">
+												<label for="bio">Short Bio (Athlete Experience)</label>
+												<textarea name="bio" id="bio" rows="4"></textarea>
+											</div>
+											<div class="col-12">
+												<ul class="actions fit">
+													<li><input type="button" value="Save Changes" class="primary btn" /></li>
+													<li><input type="button" value="Logout" class="btn logout-btn" /></li>
 												</ul>
 											</div>
 										</div>
@@ -85,6 +115,17 @@
 			</article>
 		</div>
 		<script src="../assets/js/jquery.min.js"></script>
+		<script src="../assets/js/jquery.scrollex.min.js"></script>
+		<script src="../assets/js/jquery.scrolly.min.js"></script>
+		<script src="../assets/js/browser.min.js"></script>
+		<script src="../assets/js/breakpoints.min.js"></script>
+		<script src="../assets/js/util.js"></script>
 		<script src="../assets/js/main.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+		<script src="../assets/js/firebase-init.js"></script>
+		<script src="../assets/js/auth.js"></script>
+		<script src="../assets/js/profile.js"></script>
 	</body>
 </html>

@@ -34,7 +34,7 @@
 								<li><a href="about.html">About</a></li>
 								<li><a href="events.html">Events</a></li>
 								<li><a href="membership.html">Membership</a></li>
-								<li><a href="results.html">Results/Gallery</a></li>
+								<li><a href="results-gallery.html">Results/Gallery</a></li>
 								<li><a href="contact.html">Contact</a></li>
 								<li><a href="login.html" class="button small fit">Member Login</a></li>
 							</ul>
@@ -64,14 +64,14 @@
 							<form method="post" action="#">
 								<div class="row gtr-uniform">
 									<div class="col-12">
-										<input type="email" placeholder="Email Address" required />
+										<input type="email" id="loginEmail" placeholder="Email Address" required />
 									</div>
 									<div class="col-12">
-										<input type="password" placeholder="Password" required />
+										<input type="password" id="loginPassword" placeholder="Password" required />
 									</div>
 									<div class="col-12">
 										<ul class="actions stacked">
-											<li><input type="submit" value="Login" class="primary fit" /></li>
+											<li><input type="button" id="loginBtn" value="Login" class="primary fit" /></li>
 										</ul>
 									</div>
 								</div>
@@ -82,18 +82,42 @@
 						<div id="registerForm" style="display:none;">
 							<form method="post" action="#">
 								<div class="row gtr-uniform">
-									<div class="col-12">
-										<input type="text" placeholder="Full Name" required />
+									<div class="col-6 col-12-xsmall">
+										<input type="text" id="registerFirstName" placeholder="First Name" required />
+									</div>
+									<div class="col-6 col-12-xsmall">
+										<input type="text" id="registerLastName" placeholder="Last Name" required />
 									</div>
 									<div class="col-12">
-										<input type="email" placeholder="Email Address" required />
+										<input type="email" id="registerEmail" placeholder="Email Address" required />
 									</div>
 									<div class="col-12">
-										<input type="password" placeholder="Create Password" required />
+										<input type="password" id="registerPassword" placeholder="Password" required />
+									</div>
+									<div class="col-12">
+										<label>Date of Birth</label>
+									</div>
+									<div class="col-6 col-12-xsmall">
+										<select id="registerBirthMonth">
+											<option value="">- Month -</option>
+										</select>
+									</div>
+									<div class="col-6 col-12-xsmall">
+										<select id="registerBirthYear">
+											<option value="">- Year -</option>
+										</select>
+									</div>
+									<div class="col-12">
+										<select id="registerMemberType">
+											<option value="">- Select Membership Type -</option>
+											<option value="junior">Junior Athlete</option>
+											<option value="senior">Senior Athlete</option>
+											<option value="supporter">Supporter/Parent</option>
+										</select>
 									</div>
 									<div class="col-12">
 										<ul class="actions stacked">
-											<li><input type="submit" value="Register" class="primary fit" /></li>
+											<li><input type="button" id="registerBtn" value="Register" class="primary fit" /></li>
 										</ul>
 									</div>
 								</div>
@@ -121,5 +145,10 @@
 	<script src="assets/js/breakpoints.min.js"></script>
 	<script src="assets/js/util.js"></script>
 	<script src="assets/js/main.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/auth.js"></script>
 </body>
 </html>

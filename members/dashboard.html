@@ -1,0 +1,126 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Member Dashboard - New Zealand Moguls Club</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="../assets/css/main.css" />
+	<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	<script>
+		// 未来接入 Firebase 后，这里会自动显示会员姓名
+		function loadDashboardMock() {
+			document.getElementById("memberName").innerText = "Example Athlete";
+		}
+		window.onload = loadDashboardMock;
+	</script>
+</head>
+<body class="is-preload">
+
+	<!-- Page Wrapper -->
+	<div id="page-wrapper">
+
+		<!-- Header -->
+		<header id="header">
+			<h1><a href="../index.html">New Zealand Moguls Club</a></h1>
+			<nav id="nav">
+				<ul>
+					<li class="special">
+						<a href="#menu" class="menuToggle"><span>Menu</span></a>
+						<div id="menu">
+							<ul>
+								<li><a href="../index.html">Home</a></li>
+								<li><a href="../about.html">About</a></li>
+								<li><a href="../events.html">Events</a></li>
+								<li><a href="../membership.html">Membership</a></li>
+								<li><a href="../results-gallery.html">Results/Gallery</a></li>
+								<li><a href="../contact.html">Contact</a></li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<article id="main">
+			<header>
+				<h2>Welcome Back</h2>
+				<p>Hello, <strong id="memberName"></strong> — here is your member overview</p>
+			</header>
+			<section class="wrapper style5">
+				<div class="inner">
+
+					<!-- DASHBOARD CARDS -->
+					<div class="row">
+						<div class="col-6 col-12-medium">
+							<section class="box">
+								<h3>My Profile</h3>
+								<p>View and update your personal information, guardian details, and contact info.</p>
+								<ul class="actions">
+									<li><a href="profile.html" class="button primary small">Go to Profile</a></li>
+								</ul>
+							</section>
+						</div>
+						<div class="col-6 col-12-medium">
+							<section class="box">
+								<h3>My Events</h3>
+								<p>Check your training and competition registrations.</p>
+								<ul class="actions">
+									<li><a href="my-events.html" class="button small">View My Events</a></li>
+								</ul>
+							</section>
+						</div>
+						<div class="col-6 col-12-medium">
+							<section class="box">
+								<h3>Upcoming Training</h3>
+								<p>Next Session: <strong>June 14 — Cardrona</strong></p>
+								<ul class="actions">
+									<li><a href="../events.html" class="button small">View All Events</a></li>
+								</ul>
+							</section>
+						</div>
+						<div class="col-6 col-12-medium">
+							<section class="box">
+								<h3>Membership Status</h3>
+								<p>Status: <strong style="color: green;">Active</strong><br />
+								Expires: <strong>March 2027</strong></p>
+								<ul class="actions">
+									<li><a href="../membership.html" class="button small">Renew Info</a></li>
+								</ul>
+							</section>
+						</div>
+					</div>
+
+					<ul class="actions special">
+						<li><a href="../index.html" class="button logout-btn">Logout</a></li>
+					</ul>
+
+				</div>
+			</section>
+		</article>
+
+		<!-- Footer -->
+		<footer id="footer">
+			<ul class="copyright">
+				<li>&copy; 2026 New Zealand Moguls Club Inc.</li>
+			</ul>
+		</footer>
+
+	</div>
+
+	<!-- Scripts -->
+	<script src="../assets/js/jquery.min.js"></script>
+	<script src="../assets/js/jquery.scrollex.min.js"></script>
+	<script src="../assets/js/jquery.scrolly.min.js"></script>
+	<script src="../assets/js/browser.min.js"></script>
+	<script src="../assets/js/breakpoints.min.js"></script>
+	<script src="../assets/js/util.js"></script>
+	<script src="../assets/js/main.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="../assets/js/firebase-init.js"></script>
+    <script src="../assets/js/auth.js"></script>
+
+</body>
+</html>
