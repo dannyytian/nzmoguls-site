@@ -3707,8 +3707,8 @@ input, select, textarea {
 		@media screen and (max-width: 736px) {
 
 			#banner {
-				padding: 7em 3em 5em 3em ;
-				height: auto;
+				padding: 7em 3em 5em 3em; /* Keep padding for content spacing */
+				height: 100vh; /* Ensure full viewport height */
 				min-height: 0;
 			}
 

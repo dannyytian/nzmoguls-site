@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Membership - New Zealand Moguls Club</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="assets/css/main.css" />
+	<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	<script>
+		function showTab(tab) {
+			document.getElementById("loginForm").style.display = tab === 'login' ? 'block' : 'none';
+			document.getElementById("registerForm").style.display = tab === 'register' ? 'block' : 'none';
+
+			document.getElementById("tabLogin").classList.toggle("primary", tab === 'login');
+			document.getElementById("tabRegister").classList.toggle("primary", tab === 'register');
+		}
+	</script>
+</head>
+<body class="is-preload">
+
+	<!-- Page Wrapper -->
+	<div id="page-wrapper">
+
+		<!-- Header -->
+		<header id="header">
+			<h1><a href="index.html">New Zealand Moguls Club</a></h1>
+			<nav id="nav">
+				<ul>
+					<li class="special">
+						<a href="#menu" class="menuToggle"><span>Menu</span></a>
+						<div id="menu">
+							<ul>
+								<li><a href="index.html">Home</a></li>
+								<li><a href="about.html">About</a></li>
+								<li><a href="events.html">Events</a></li>
+								<li><a href="membership.html">Membership</a></li>
+								<li><a href="results.html">Results/Gallery</a></li>
+								<li><a href="contact.html">Contact</a></li>
+								<li><a href="login.html" class="button small fit">Member Login</a></li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<article id="main">
+			<header>
+				<h2>Membership</h2>
+				<p>Join our community and access exclusive training and events</p>
+			</header>
+			<section class="wrapper style5">
+				<div class="inner">
+
+					<div style="max-width: 600px; margin: 0 auto;">
+						<ul class="actions fit">
+							<li><a id="tabLogin" class="button primary fit" onclick="showTab('login')">Login</a></li>
+							<li><a id="tabRegister" class="button fit" onclick="showTab('register')">Register</a></li>
+						</ul>
+
+						<!-- LOGIN FORM -->
+						<div id="loginForm">
+							<form method="post" action="#">
+								<div class="row gtr-uniform">
+									<div class="col-12">
+										<input type="email" placeholder="Email Address" required />
+									</div>
+									<div class="col-12">
+										<input type="password" placeholder="Password" required />
+									</div>
+									<div class="col-12">
+										<ul class="actions stacked">
+											<li><input type="submit" value="Login" class="primary fit" /></li>
+										</ul>
+									</div>
+								</div>
+							</form>
+						</div>
+
+						<!-- REGISTER FORM -->
+						<div id="registerForm" style="display:none;">
+							<form method="post" action="#">
+								<div class="row gtr-uniform">
+									<div class="col-12">
+										<input type="text" placeholder="Full Name" required />
+									</div>
+									<div class="col-12">
+										<input type="email" placeholder="Email Address" required />
+									</div>
+									<div class="col-12">
+										<input type="password" placeholder="Create Password" required />
+									</div>
+									<div class="col-12">
+										<ul class="actions stacked">
+											<li><input type="submit" value="Register" class="primary fit" /></li>
+										</ul>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+
+				</div>
+			</section>
+		</article>
+
+		<!-- Footer -->
+		<footer id="footer">
+			<ul class="copyright">
+				<li>&copy; 2026 New Zealand Moguls Club Inc.</li>
+			</ul>
+		</footer>
+	</div>
+
+	<!-- Scripts -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/jquery.scrollex.min.js"></script>
+	<script src="assets/js/jquery.scrolly.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+</body>
+</html>
