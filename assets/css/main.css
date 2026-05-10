@@ -3325,7 +3325,7 @@ input, select, textarea {
 		-ms-transition: opacity 0.5s ease;
 		transition: opacity 0.5s ease;
 		opacity: 1;
-		padding-top: 3em;
+		padding-top: 6em;
 	}
 
 		#page-wrapper:before {
@@ -3445,10 +3445,10 @@ input, select, textarea {
 		-webkit-transition: background-color 0.2s ease;
 		-ms-transition: background-color 0.2s ease;
 		transition: background-color 0.2s ease;
-		background: #2e3842;
-		height: 3em;
+			background: rgba(173, 216, 230, 0.3); /* 半透明淡蓝色 */
+		height: 6em;
 		left: 0;
-		line-height: 3em;
+		line-height: 6em;
 		position: fixed;
 		top: 0;
 		width: 100%;
@@ -3474,6 +3474,35 @@ input, select, textarea {
 				line-height: inherit;
 			}
 
+.logo-container {
+	position: absolute;
+	left: 0;
+	top: 0;
+	height: inherit;
+	width: 33.33%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #fff;
+	padding: 0;
+	clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+	z-index: 1;
+}
+
+.logo-link {
+	text-decoration: none;
+	display: flex;
+	align-items: center;
+	border-bottom: none !important;
+}
+
+.logo-icon {
+	height: 80px;
+	width: auto;
+	/* 稍微向左偏移以补偿梯形的视觉重心 */
+	margin-right: 10px;
+}
+
 				@media screen and (max-width: 736px) {
 
 					#header h1 a {
@@ -3481,6 +3510,22 @@ input, select, textarea {
 					}
 
 				}
+
+@media screen and (max-width: 980px) {
+	#page-wrapper { padding-top: 5em; }
+	#header { height: 5em; line-height: 5em; }
+	.logo-icon { height: 60px; }
+}
+
+@media (max-width: 768px) {
+	.logo-container { 
+		width: 40%; /* 在手机端稍微加宽一点，防止图标太挤 */
+		clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%); 
+	}
+	#page-wrapper { padding-top: 4em; }
+	#header { height: 4em; line-height: 4em; }
+	.logo-icon { height: 45px; }
+}
 
 		#header nav {
 			height: inherit;
@@ -3519,13 +3564,15 @@ input, select, textarea {
 
 							#header nav > ul > li > a.menuToggle:after {
 								background-image: url("images/bars.svg");
-								background-position: right center;
+								background-position: center;
+								background-size: 1.2rem;
 								background-repeat: no-repeat;
 								content: '';
 								display: inline-block;
-								height: 3.75em;
-								vertical-align: top;
+								height: 6rem; /* 匹配 Header 的 6em 高度 */
+								vertical-align: middle;
 								width: 2em;
+								margin-left: 0.5em;
 							}
 
 							@media screen and (max-width: 736px) {
@@ -3554,12 +3601,12 @@ input, select, textarea {
 
 		#header.alt {
 			background: transparent;
+			backdrop-filter: none;
 		}
-
-			#header.alt h1 {
-				pointer-events: none;
-				opacity: 0;
-			}
+	#header.alt .logo-container {
+		opacity: 0;
+		pointer-events: none;
+	}
 
 /* Banner */
 
@@ -3814,10 +3861,10 @@ input, select, textarea {
 
 	#main > header {
 		padding: 12em 0 10em 0 ;
-		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
+		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
 		background-attachment: fixed;
 		background-position: center center;
 		background-repeat: no-repeat;
@@ -3964,10 +4011,10 @@ input, select, textarea {
 /* Landing */
 
 	body.landing #page-wrapper {
-		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
+		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
 		background-attachment: fixed;
 		background-position: center center;
 		background-repeat: no-repeat;
@@ -3985,28 +4032,11 @@ input, select, textarea {
 
 	body.is-mobile.landing #banner,
 	body.is-mobile.landing .wrapper.style4 {
-		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-position: center center;
-		background-repeat: no-repeat;
-		background-size: cover;
-	}
-
-	body.is-mobile.landing #footer {
-		background-color: #1d242a;
-	}
+		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
+		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
 		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("../../images/banner.jpg");
-		background-image: -moz-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: -ms-linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
-		background-image: linear-gradient(top, rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("/images/banner.jpg");
 		background-position: center center;
 		background-repeat: no-repeat;
 		background-size: cover;
-	}
-
-	body.is-mobile.landing #footer {
-		background-color: #1d242a;
 	}

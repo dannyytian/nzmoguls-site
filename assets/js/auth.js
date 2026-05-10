@@ -42,12 +42,57 @@ async function handleRegister(email, password, firstName, lastName, memberType, 
 async function handleLogout() {
     try {
         await auth.signOut();
-        window.location.href = "../membership.html";
+        const isMemberDir = window.location.pathname.includes("/members/");
+        window.location.href = isMemberDir ? "../membership.html" : "membership.html";
     } catch (error) {
         alert(error.message);
         console.error(error);
     }
 }
+
+// 动态更新菜单登录/登出按钮
+auth.onAuthStateChanged((user) => {
+    const authLink = document.getElementById("menu-auth-link");
+    const membershipLink = document.getElementById("menu-membership-link");
+    const bannerActions = document.getElementById("banner-actions");
+
+    if (!authLink && !membershipLink && !bannerActions) return;
+
+    const isMemberDir = window.location.pathname.includes("/members/");
+    
+    if (user) {
+        // 已登录状态
+        if (bannerActions) {
+            bannerActions.style.display = "none";
+        }
+        if (authLink) {
+            authLink.innerText = "Log Out";
+            authLink.href = "#";
+            authLink.className = "button small fit logout-btn";
+            authLink.onclick = (e) => {
+                e.preventDefault();
+                handleLogout();
+            };
+        }
+        if (membershipLink) {
+            membershipLink.href = isMemberDir ? "dashboard.html" : "members/dashboard.html";
+        }
+    } else {
+        // 未登录状态
+        if (bannerActions) {
+            bannerActions.style.display = "";
+        }
+        if (authLink) {
+            authLink.innerText = "Member Login";
+            authLink.href = isMemberDir ? "../login.html" : "login.html";
+            authLink.className = "button small fit";
+            authLink.onclick = null; // 恢复正常链接跳转
+        }
+        if (membershipLink) {
+            membershipLink.href = isMemberDir ? "../membership.html" : "membership.html";
+        }
+    }
+});
 
 // 保护会员页面（未登录自动跳回 membership.html）
 function protectMemberPage() {

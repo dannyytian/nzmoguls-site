@@ -6,6 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 	<link rel="stylesheet" href="assets/css/main.css" />
 	<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
 </head>
 <body class="is-preload">
 
@@ -14,7 +15,11 @@
 
 		<!-- Header -->
 		<header id="header">
-			<h1><a href="index.html">New Zealand Moguls Club</a></h1>
+			<div class="logo-container">
+				<a href="index.html" class="logo-link">
+					<img src="images/logo.png" alt="NZ Moguls Club Icon" class="logo-icon">
+				</a>
+			</div>
 			<nav id="nav">
 				<ul>
 					<li class="special">
@@ -24,10 +29,10 @@
 								<li><a href="index.html">Home</a></li>
 								<li><a href="about.html">About</a></li>
 								<li><a href="events.html">Events</a></li>
-								<li><a href="membership.html">Membership</a></li>
+								<li><a href="membership.html" id="menu-membership-link">Membership</a></li>
 								<li><a href="results-gallery.html">Results/Gallery</a></li>
 								<li><a href="contact.html">Contact</a></li>
-								<li><a href="login.html" class="button small fit">Member Login</a></li>
+								<li><a href="login.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
 							</ul>
 						</div>
 					</li>
@@ -124,5 +129,10 @@
 	<script src="assets/js/breakpoints.min.js"></script>
 	<script src="assets/js/util.js"></script>
 	<script src="assets/js/main.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+	<script src="assets/js/firebase-init.js"></script>
+	<script src="assets/js/auth.js"></script>
 </body>
 </html>
