@@ -125,7 +125,7 @@ async function handleLogout() {
 }
 
 // 动态更新菜单登录/登出按钮
-if (window.supabase && window.supabase.auth) {
+if (window.supabase && window.supabase.auth && typeof window.supabase.auth.onAuthStateChange === 'function') {
     window.supabase.auth.onAuthStateChange((event, session) => {
     const user = session?.user;
     const authLink = document.getElementById("menu-auth-link");
