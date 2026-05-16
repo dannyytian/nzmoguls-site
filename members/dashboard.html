@@ -32,7 +32,7 @@
 								<li><a href="../membership.html" id="menu-membership-link">Membership</a></li>
 								<li><a href="../results-gallery.html">Results/Gallery</a></li>
 								<li><a href="../contact.html">Contact</a></li>
-								<li><a href="../login.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+								<li><a href="../membership.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
 							</ul>
 						</div>
 					</li>
@@ -52,6 +52,7 @@
 					<!-- DASHBOARD CARDS -->
 					<div class="row">
 						<div class="col-6 col-12-medium">
+							<!-- LEFT COLUMN: Profile + Family -->
 							<section class="box">
 								<h3>My Profile</h3>
 								<p>View and update your personal information, guardian details, and contact info.</p>
@@ -59,8 +60,21 @@
 									<li><a href="profile.html" class="button primary small">Go to Profile</a></li>
 								</ul>
 							</section>
+
+							<!-- FAMILY MANAGEMENT (Dynamic) -->
+							<div id="familySection" style="display: none; margin-top: 3.5em;">
+								<header class="major" style="margin-bottom: 2em; padding-left: 1.5em;">
+									<h3 style="margin-bottom: 1em;">Manage Family Members</h3>
+									<ul class="actions">
+										<li><a href="#" id="addMemberBtn" class="button primary small icon solid fa-plus">Add Participant</a></li>
+									</ul>
+								</header>
+								<div class="row" id="familyList"></div>
+							</div>
 						</div>
+
 						<div class="col-6 col-12-medium">
+							<!-- RIGHT COLUMN: Events + Training -->
 							<section class="box">
 								<h3>My Events</h3>
 								<p>Check your training and competition registrations.</p>
@@ -68,8 +82,6 @@
 									<li><a href="my-events.html" class="button small">View My Events</a></li>
 								</ul>
 							</section>
-						</div>
-						<div class="col-6 col-12-medium">
 							<section class="box">
 								<h3>Upcoming Training</h3>
 								<p>Next Session: <strong>June 14 — Cardrona</strong></p>
@@ -78,22 +90,7 @@
 								</ul>
 							</section>
 						</div>
-						<div class="col-6 col-12-medium">
-							<section class="box">
-								<h3>Membership Status</h3>
-								<p>Status: <strong style="color: green;">Active</strong><br />
-								Expires: <strong>March 2027</strong></p>
-								<ul class="actions">
-									<li><a href="../membership.html" class="button small">Renew Info</a></li>
-								</ul>
-							</section>
-						</div>
 					</div>
-
-					<ul class="actions special">
-						<li><a href="../index.html" class="button logout-btn">Logout</a></li>
-					</ul>
-
 				</div>
 			</section>
 		</article>
@@ -115,12 +112,9 @@
 	<script src="../assets/js/breakpoints.min.js"></script>
 	<script src="../assets/js/util.js"></script>
 	<script src="../assets/js/main.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="../assets/js/firebase-init.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="../assets/js/supabase-init.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/dashboard.js"></script>
-
 </body>
 </html>

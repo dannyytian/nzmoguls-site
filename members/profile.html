@@ -7,6 +7,21 @@
 		<link rel="stylesheet" href="../assets/css/main.css" />
 		<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
 		<link rel="icon" href="../images/favicon.ico" type="image/x-icon" />
+		<style>
+			/* 当表单被标记为 'was-validated' 时，渲染无效字段的样式 */
+			form.was-validated input:invalid,
+			form.was-validated select:invalid,
+			form.was-validated textarea:invalid {
+				border: 2px solid #ff4b4b !important; /* 合并边框属性，确保显示 */
+				background-color: rgba(255, 75, 75, 0.05) !important;
+				border-radius: 3px !important; /* 确保边框圆角保持一致 */
+				outline: none !important; /* 移除可能干扰的默认焦点轮廓 */
+			}
+			form.was-validated input[type="checkbox"]:invalid + label:before {
+				border: 2px solid #ff4b4b !important; /* 合并边框属性 */
+				border-radius: 3px !important;
+			}
+		</style>
 	</head>
 	<body class="is-preload">
 		<div id="page-wrapper">
@@ -28,7 +43,7 @@
 									<li><a href="../membership.html" id="menu-membership-link">Membership</a></li>
 									<li><a href="../results-gallery.html">Results/Gallery</a></li>
 									<li><a href="../contact.html">Contact</a></li>
-									<li><a href="../login.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+									<li><a href="../membership.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
 								</ul>
 							</div>
 						</li>
@@ -43,72 +58,130 @@
 				</header>
 				<section class="wrapper style5">
 					<div class="inner">
+						<p id="minorNotice" class="notice-box" style="display: none;"><i class="fas fa-info-circle"></i> <strong>Notice:</strong> You are adding a family member. As the parent/guardian, you are signing the following agreements on behalf of the minor.</p>
 						<div class="row">
-							<div class="col-4 col-12-medium">
-								<section class="box">
-									<h3>Membership Status</h3>
-									<p><strong>Status:</strong> <span style="color: green;">Active</span><br />
-									<strong>Type:</strong> Senior Athlete<br />
-									<strong>Expiry:</strong> 31 Dec 2026</p>
-									<ul class="actions stacked">
-										<li><a href="#" class="button small fit">Renew Membership</a></li>
-									</ul>
-								</section>
-							</div>
-							<div class="col-8 col-12-medium">
+							<div class="col-12">
 								<section>
 									<h3>Edit Profile</h3>
 									<form method="post" action="#">
 										<div class="row gtr-uniform">
 											<div class="col-6 col-12-xsmall">
 												<label for="firstName">First Name</label>
-												<input type="text" id="firstName" value="" placeholder="First Name" />
+												<input type="text" id="firstName" value="" placeholder="First Name" required />
 											</div>
 											<div class="col-6 col-12-xsmall">
 												<label for="lastName">Last Name</label>
-												<input type="text" id="lastName" value="" placeholder="Last Name" />
+												<input type="text" id="lastName" value="" placeholder="Last Name" required />
 											</div>
 											<div class="col-12">
 												<label for="email">Email</label>
-												<input type="email" id="email" value="" disabled />
+												<div class="row gtr-uniform">
+													<div class="col-9 col-12-xsmall">
+														<input type="email" id="email" value="" placeholder="Email Address" required disabled />
+													</div>
+													<div id="useMyEmailContainer" class="col-3 col-12-xsmall" style="display: none;">
+														<button type="button" class="button small fit" id="useMyEmailBtn">Use My Email</button>
+													</div>
+												</div>
 											</div>
-											<div class="col-6 col-12-xsmall">
+											<div class="col-12">
+												<label>Date of Birth</label>
+											</div>
+											<div class="col-4 col-12-xsmall">
+												<label for="birthYear">Birth Year</label>
+												<select id="birthYear" required>
+													<option value="">- Year -</option>
+												</select>
+											</div>
+											<div class="col-4 col-12-xsmall">
 												<label for="birthMonth">Birth Month</label>
-												<select id="birthMonth">
+												<select id="birthMonth" required>
 													<option value="">- Month -</option>
 												</select>
 											</div>
-											<div class="col-6 col-12-xsmall">
-												<label for="birthYear">Birth Year</label>
-												<select id="birthYear">
-													<option value="">- Year -</option>
+											<div class="col-4 col-12-xsmall">
+												<label for="birthDay">Birth Day</label>
+												<select id="birthDay" required>
+													<option value="">- Day -</option>
 												</select>
 											</div>
 											<div class="col-12">
 												<label for="memberType">Membership Type</label>
-												<select id="memberType">
+												<select id="memberType" required>
 													<option value="">- Select Membership Type -</option>
-													<option value="junior">Junior Athlete</option>
-													<option value="senior">Senior Athlete</option>
-													<option value="supporter">Supporter/Parent</option>
+													<option value="minor_athlete">Minor Athlete</option>
+													<option value="adult_athlete">Adult Athlete</option>
+													<option value="guardian">Parent / Guardian</option>
 												</select>
 											</div>
 											<div class="col-12">
-												<label for="guardian">Parent / Guardian Name</label>
-												<input type="text" id="guardian" placeholder="Parent Name" />
+												<label for="school_name">School Name</label>
+												<input type="text" id="school_name" placeholder="Enter your school" />
 											</div>
 											<div class="col-12">
 												<label for="phone">Contact Phone</label>
 												<input type="text" id="phone" placeholder="Phone Number" />
 											</div>
 											<div class="col-12">
-												<label for="bio">Short Bio (Athlete Experience)</label>
-												<textarea name="bio" id="bio" rows="4"></textarea>
+												<label for="medical_conditions">Medical Conditions / Allergies</label>
+												<textarea name="medical_conditions" id="medical_conditions" rows="4"></textarea>
 											</div>
+
+											<!-- GUARDIAN CONSENT FOR MINOR (Only visible if Minor Athlete and Age < 18) -->
+											<div id="minorGuardianConsentSection" class="col-12" style="display: none; margin-top: 1.5em; padding: 1.5em; background: rgba(144, 144, 144, 0.05); border-radius: 5px;">
+												<h5>Parent / Guardian Consent for Minor</h5>
+												<div class="col-12">
+													<input type="checkbox" id="minorAgreeCheckbox" name="minorAgree">
+													<label for="minorAgreeCheckbox">I am the parent/legal guardian and I agree to all terms on behalf of the minor as outlined in the <a href="../legal/parent-consent.html" target="_blank">Parent / Guardian Consent</a>.</label>
+												</div>
+												<div class="row gtr-uniform">
+													<div class="col-9 col-12-xsmall">
+														<input type="text" id="minorGuardianSignature" placeholder="Parent/Guardian Full Name (Electronic Signature)">
+													</div>
+													<div class="col-3 col-12-xsmall">
+														<button type="button" class="button small fit" id="copyCurrentGuardianNameBtn">Copy Name</button>
+													</div>
+													<div class="col-6 col-12-xsmall">
+														<input type="email" id="minorGuardianEmail" placeholder="Parent/Guardian Email">
+													</div>
+													<div class="col-6 col-12-xsmall">
+														<input type="tel" id="minorGuardianPhone" placeholder="Parent/Guardian Phone">
+													</div>
+												</div>
+											</div>
+
+											<!-- AGREEMENTS SECTION (Only visible in Add Mode) -->
+											<div id="addMemberAgreements" class="col-12" style="display: none;">
+												<hr />
+												<h4>Agreements</h4>
+												<div class="col-12">
+													<input type="checkbox" id="registerAgreeGeneral" name="agreeGeneral">
+													<label for="registerAgreeGeneral">I agree to the <a href="../legal/membership-agreement.html" target="_blank">Membership Agreement</a>, <a href="../legal/coc.html" target="_blank">Code of Conduct</a>, and <a href="../legal/general-agreement.html" target="_blank">General Agreement</a> on behalf of the minor.</label>
+												</div>
+												<div class="col-12">
+													<input type="checkbox" id="registerAgreeWaiver" name="agreeWaiver">
+													<label for="registerAgreeWaiver">I agree to the <a href="../legal/liability-waiver.html" target="_blank">Liability Waiver</a> on behalf of the minor.</label>
+												</div>
+												<div id="signatureSection" style="margin-top: 1.5em;">
+													<label id="signatureLabel">New Member Electronic Signature (Type your Full Name)</label>
+													<div class="row gtr-uniform">
+														<div class="col-9 col-12-xsmall">
+															<input type="text" id="registerSignature" placeholder="Full Name" />
+														</div>
+														<div class="col-3 col-12-xsmall">
+															<button type="button" class="button small fit" id="profileCopyNameBtn">Copy My Name</button>
+														</div>
+													</div>
+												</div>
+											</div>
+
 											<div class="col-12">
 												<ul class="actions fit">
-													<li><input type="button" value="Save Changes" class="primary btn" /></li>
-													<li><input type="button" value="Logout" class="btn logout-btn" /></li>
+													<li>
+														<input type="button" value="Save Changes" class="primary btn" />
+														<div id="saveSpinner" class="spinner hidden"></div>
+													</li>
+													<li><input type="button" id="cancelBtn" value="Cancel" class="btn" /></li>
 												</ul>
 											</div>
 										</div>
@@ -127,10 +200,8 @@
 		<script src="../assets/js/breakpoints.min.js"></script>
 		<script src="../assets/js/util.js"></script>
 		<script src="../assets/js/main.js"></script>
-		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-		<script src="../assets/js/firebase-init.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+		<script src="../assets/js/supabase-init.js"></script>
 		<script src="../assets/js/auth.js"></script>
 		<script src="../assets/js/profile.js"></script>
 	</body>

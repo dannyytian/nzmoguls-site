@@ -32,7 +32,7 @@
 								<li><a href="membership.html" id="menu-membership-link">Membership</a></li>
 								<li><a href="results-gallery.html">Results/Gallery</a></li>
 								<li><a href="contact.html">Contact</a></li>
-								<li><a href="login.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+								<li><a href="membership.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
 							</ul>
 						</div>
 					</li>
@@ -51,12 +51,12 @@
 
 					<h3>Gallery</h3>
 					<div class="box alt">
-						<div class="row gtr-50 gtr-uniform">
-							<div class="col-4"><span class="image fit"><img src="gallery/pic01.jpg" alt="Moguls 1" /></span></div>
-							<div class="col-4"><span class="image fit"><img src="gallery/pic02.jpg" alt="Moguls 2" /></span></div>
-							<div class="col-4"><span class="image fit"><img src="gallery/pic03.jpg" alt="Moguls 3" /></span></div>
-							<div class="col-4"><span class="image fit"><img src="gallery/pic04.jpg" alt="Moguls 4" /></span></div>
-							<div class="col-4"><span class="image fit"><img src="gallery/pic05.jpg" alt="Moguls 5" /></span></div>
+						<div class="row gtr-50 gtr-uniform" id="gallery-grid">
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic01.jpg" data-full="gallery/pic01.jpg" alt="Moguls 1" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic02.jpg" data-full="gallery/pic02.jpg" alt="Moguls 2" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic03.jpg" data-full="gallery/pic03.jpg" alt="Moguls 3" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic04.jpg" data-full="gallery/pic04.jpg" alt="Moguls 4" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic05.jpg" data-full="gallery/pic05.jpg" alt="Moguls 5" style="cursor: pointer;" /></span></div>
 						</div>
 					</div>
 					<ul class="actions special">
@@ -129,10 +129,39 @@
 	<script src="assets/js/breakpoints.min.js"></script>
 	<script src="assets/js/util.js"></script>
 	<script src="assets/js/main.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-	<script src="assets/js/firebase-init.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="assets/js/supabase-init.js"></script>
 	<script src="assets/js/auth.js"></script>
+
+			<script>
+				// 简单的图片 Lightbox 逻辑
+				document.getElementById('gallery-grid')?.addEventListener('click', (e) => {
+					const target = e.target;
+					if (target.tagName === 'IMG' && target.dataset.full) {
+						const fullSrc = target.dataset.full;
+						const altText = target.alt || 'Gallery Image';
+						
+						let container = document.getElementById('modal-container');
+						if (!container) {
+							container = document.createElement('div');
+							container.id = 'modal-container';
+							document.body.appendChild(container);
+						}
+
+						// 注入图片内容，复用已有的 modal-container 逻辑
+						container.innerHTML = `
+							<div class="modal-box image-lightbox">
+								<img src="${fullSrc}" alt="${altText}">
+								<div style="text-align:center; padding: 1em 0 0.5em 0;">
+									<button class="button primary small" onclick="this.closest('#modal-container').classList.remove('visible')">Close</button>
+								</div>
+							</div>
+						`;
+
+						// 触发渐入动画
+						setTimeout(() => container.classList.add('visible'), 10);
+					}
+				});
+			</script>
 </body>
 </html>
