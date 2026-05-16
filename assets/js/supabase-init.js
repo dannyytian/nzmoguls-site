@@ -8,7 +8,8 @@ const _KEY = 'sb_publishable_E8GkM8xtAT03-SW3Y87tnQ_iwDltrcb';
 const isInvalid = (val, name) => 
     !val || 
     val === '___' + name + '___' || 
-    val === '{{' + name + '}}' || 
+    val.includes('{{') || 
+    val.includes('PLACEHOLDER') ||
     val.includes('PLACEHOLDER');
 
 if (isInvalid(_URL, 'SUPABASE_URL') || isInvalid(_KEY, 'SUPABASE_ANON_KEY')) {
