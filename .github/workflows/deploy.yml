@@ -17,12 +17,27 @@ jobs:
 
       - name: Inject Supabase Secrets
         env:
-          S_URL: ${{ secrets.SUPABASE_URL }}
-          S_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # 使用 sed 替换占位符。注意这里使用 | 作为分隔符，因为 URL 中包含 /
-          sed -i "s|___SUPABASE_URL___|$S_URL|g" assets/js/supabase-init.js
-          sed -i "s|___SUPABASE_ANON_KEY___|$S_KEY|g" assets/js/supabase-init.js
+          # 使用 Node.js 进行替换，处理特殊字符更稳健
+          node -e "
+            const fs = require('fs');
+            const filePath = 'assets/js/supabase-init.js';
+            let content = fs.readFileSync(filePath, 'utf8');
+            content = content.replace('___SUPABASE_URL___', process.env.SUPABASE_URL);
+            content = content.replace('___SUPABASE_ANON_KEY___', process.env.SUPABASE_ANON_KEY);
+            fs.writeFileSync(filePath, content);
+            console.log('Secrets injected into ' + filePath);
+          "
+
+      - name: Verify Secrets Injection
+        run: |
+          # 检查占位符是否仍然存在，如果存在则终止部署
+          if grep -q "___SUPABASE_URL___" assets/js/supabase-init.js; then
+            echo "ERROR: Placeholder ___SUPABASE_URL___ still found in assets/js/supabase-init.js!"
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
