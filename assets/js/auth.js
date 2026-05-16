@@ -125,7 +125,8 @@ async function handleLogout() {
 }
 
 // 动态更新菜单登录/登出按钮
-supabase.auth.onAuthStateChange((event, session) => {
+if (window.supabase && window.supabase.auth) {
+    window.supabase.auth.onAuthStateChange((event, session) => {
     const user = session?.user;
     const authLink = document.getElementById("menu-auth-link");
     const membershipLink = document.getElementById("menu-membership-link");
@@ -167,7 +168,8 @@ supabase.auth.onAuthStateChange((event, session) => {
             membershipLink.href = isMemberDir ? "../membership.html" : "membership.html";
         }
     }
-});
+    });
+}
 
 // 保护会员页面（未登录自动跳回 membership.html）
 async function protectMemberPage() {
