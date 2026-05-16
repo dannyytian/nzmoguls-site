@@ -5,7 +5,7 @@ const _URL = 'https://zgjtpgnkxiaaxicezwte.supabase.co';
 const _KEY = 'sb_publishable_E8GkM8xtAT03-SW3Y87tnQ_iwDltrcb';
 
 // 辅助检查函数：判断是否为占位符或空值
-const isInvalid = (val, name) => !val || val === '{{' + name + '}}' || val.includes('PLACEHOLDER');
+const isInvalid = (val, name) => !val || val === '___' + name + '___' || val.includes('PLACEHOLDER');
 
 if (isInvalid(_URL, 'SUPABASE_URL') || isInvalid(_KEY, 'SUPABASE_ANON_KEY')) {
     const msg = "Supabase configuration is missing or invalid! \n" +
