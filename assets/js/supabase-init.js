@@ -5,7 +5,11 @@ const _URL = '___SUPABASE_URL___';
 const _KEY = '___SUPABASE_ANON_KEY___';
 
 // 辅助检查函数：判断是否为占位符或空值
-const isInvalid = (val, name) => !val || val === '___' + name + '___' || val.includes('PLACEHOLDER');
+const isInvalid = (val, name) => 
+    !val || 
+    val === '___' + name + '___' || 
+    val === '{{' + name + '}}' || 
+    val.includes('PLACEHOLDER');
 
 if (isInvalid(_URL, 'SUPABASE_URL') || isInvalid(_KEY, 'SUPABASE_ANON_KEY')) {
     const msg = "Supabase configuration is missing or invalid! \n" +
