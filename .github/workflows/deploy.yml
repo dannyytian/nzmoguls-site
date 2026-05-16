@@ -18,8 +18,8 @@ jobs:
       - name: Inject Supabase Secrets
         run: |
           # 使用 sed 替换占位符。注意这里使用 | 作为分隔符，因为 URL 中包含 /
-          sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
-          sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
+          sed -i "s|{{SUPABASE_URL}}|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
+          sed -i "s|{{SUPABASE_ANON_KEY}}|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
