@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>My Events - New Zealand Moguls Club</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="../assets/css/main.css" />
+	<noscript><link rel="stylesheet" href="../assets/css/noscript.css" /></noscript>
+	<link rel="icon" href="../images/favicon.ico" type="image/x-icon" />
+</head>
+<body class="is-preload">
+
+	<!-- Page Wrapper -->
+	<div id="page-wrapper">
+
+		<!-- Header -->
+		<header id="header">
+			<div class="logo-container">
+				<a href="../index.html" class="logo-link">
+					<img src="../images/logo.png" alt="NZ Moguls Club Icon" class="logo-icon">
+				</a>
+			</div>
+			<nav id="nav">
+				<ul>
+					<li class="special">
+						<a href="#menu" class="menuToggle"><span>Menu</span></a>
+						<div id="menu">
+							<ul>
+								<li><a href="../index.html">Home</a></li>
+								<li><a href="../about.html">About</a></li>
+								<li><a href="../events.html">Events</a></li>
+								<li><a href="../membership.html" id="menu-membership-link">Membership</a></li>
+								<li><a href="../results-gallery.html">Results/Gallery</a></li>
+								<li><a href="../contact.html">Contact</a></li>
+								<li><a href="../login.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<article id="main">
+			<header>
+				<h2>My Event Registrations</h2>
+				<p>View your registered training sessions and competitions</p>
+			</header>
+			<section class="wrapper style5">
+				<div class="inner">
+
+					<!-- FILTER TOGGLE -->
+					<div class="row gtr-uniform" style="margin-bottom: 2em;">
+						<div class="col-12">
+							<input type="checkbox" id="showExpiredToggle" name="showExpiredToggle">
+							<label for="showExpiredToggle">Show Past / Expired Events</label>
+						</div>
+					</div>
+
+					<hr />
+
+					<!-- TRAINING EVENTS -->
+					<h3>Training Sessions</h3>
+					<div class="row" id="my-training-list">
+						<p>Loading your training sessions...</p>
+					</div>
+
+					<hr />
+
+					<!-- COMPETITION EVENTS -->
+					<h3>Competitions</h3>
+					<div class="row" id="my-competition-list">
+						<p>Loading your competitions...</p>
+					</div>
+
+					<ul class="actions special">
+						<li><a href="dashboard.html" class="button">Back to Dashboard</a></li>
+					</ul>
+
+				</div>
+			</section>
+		</article>
+
+		<!-- Footer -->
+		<footer id="footer">
+			<ul class="copyright">
+				<li>&copy; 2026 New Zealand Moguls Club Inc.</li>
+			</ul>
+		</footer>
+
+	</div>
+
+	<!-- Scripts -->
+	<script src="../assets/js/jquery.min.js"></script>
+	<script src="../assets/js/jquery.scrollex.min.js"></script>
+	<script src="../assets/js/jquery.scrolly.min.js"></script>
+	<script src="../assets/js/browser.min.js"></script>
+	<script src="../assets/js/breakpoints.min.js"></script>
+	<script src="../assets/js/util.js"></script>
+	<script src="../assets/js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/supabase-init.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/my-events.js"></script>
+</body>
+</html>

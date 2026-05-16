@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Results & Gallery - New Zealand Moguls Club</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="assets/css/main.css" />
+	<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+</head>
+<body class="is-preload">
+
+	<!-- Page Wrapper -->
+	<div id="page-wrapper">
+
+		<!-- Header -->
+		<header id="header">
+			<div class="logo-container">
+				<a href="index.html" class="logo-link">
+					<img src="images/logo.png" alt="NZ Moguls Club Icon" class="logo-icon">
+				</a>
+			</div>
+			<nav id="nav">
+				<ul>
+					<li class="special">
+						<a href="#menu" class="menuToggle"><span>Menu</span></a>
+						<div id="menu">
+							<ul>
+								<li><a href="index.html">Home</a></li>
+								<li><a href="about.html">About</a></li>
+								<li><a href="events.html">Events</a></li>
+								<li><a href="membership.html" id="menu-membership-link">Membership</a></li>
+								<li><a href="results-gallery.html">Results/Gallery</a></li>
+								<li><a href="contact.html">Contact</a></li>
+								<li><a href="membership.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<article id="main">
+			<header>
+				<h2>Results & Gallery</h2>
+				<p>Highlights from our training sessions, competitions, and club events</p>
+			</header>
+			<section class="wrapper style5">
+				<div class="inner">
+
+					<h3>Gallery</h3>
+					<div class="box alt">
+						<div class="row gtr-50 gtr-uniform" id="gallery-grid">
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic01.jpg" data-full="gallery/pic01.jpg" alt="Moguls 1" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic02.jpg" data-full="gallery/pic02.jpg" alt="Moguls 2" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic03.jpg" data-full="gallery/pic03.jpg" alt="Moguls 3" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic04.jpg" data-full="gallery/pic04.jpg" alt="Moguls 4" style="cursor: pointer;" /></span></div>
+							<div class="col-4"><span class="image fit"><img src="gallery/thumbs/pic05.jpg" data-full="gallery/pic05.jpg" alt="Moguls 5" style="cursor: pointer;" /></span></div>
+						</div>
+					</div>
+					<ul class="actions special">
+						<li><a href="#" class="button">View More Photos</a></li>
+					</ul>
+
+					<hr />
+
+					<h3>Competition Results</h3>
+					<div class="table-wrapper">
+						<table>
+							<thead>
+								<tr>
+									<th>Event</th>
+									<th>Athlete</th>
+									<th>Category</th>
+									<th>Result</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>NZ Junior Moguls Series – Round 1</td>
+									<td>Alex Smith</td>
+									<td>U14 Boys</td>
+									<td>1st Place</td>
+								</tr>
+								<tr>
+									<td>NZ Junior Moguls Series – Round 1</td>
+									<td>Emily Johnson</td>
+									<td>U12 Girls</td>
+									<td>2nd Place</td>
+								</tr>
+								<tr>
+									<td>Winter Moguls Camp Challenge</td>
+									<td>Lucas Brown</td>
+									<td>Open</td>
+									<td>Top Score</td>
+								</tr>
+								<tr>
+									<td>Club Fun Race - June</td>
+									<td>Sarah Lee</td>
+									<td>Open Female</td>
+									<td>1st Place</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<ul class="actions special">
+						<li><a href="#" class="button">View Full Results Archive</a></li>
+					</ul>
+
+				</div>
+			</section>
+		</article>
+
+		<!-- Footer -->
+		<footer id="footer">
+			<ul class="copyright">
+				<li>&copy; 2026 New Zealand Moguls Club Inc.</li>
+			</ul>
+		</footer>
+
+	</div>
+
+	<!-- Scripts -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/jquery.scrollex.min.js"></script>
+	<script src="assets/js/jquery.scrolly.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="assets/js/supabase-init.js"></script>
+	<script src="assets/js/auth.js"></script>
+
+			<script>
+				// 简单的图片 Lightbox 逻辑
+				document.getElementById('gallery-grid')?.addEventListener('click', (e) => {
+					const target = e.target;
+					if (target.tagName === 'IMG' && target.dataset.full) {
+						const fullSrc = target.dataset.full;
+						const altText = target.alt || 'Gallery Image';
+						
+						let container = document.getElementById('modal-container');
+						if (!container) {
+							container = document.createElement('div');
+							container.id = 'modal-container';
+							document.body.appendChild(container);
+						}
+
+						// 注入图片内容，复用已有的 modal-container 逻辑
+						container.innerHTML = `
+							<div class="modal-box image-lightbox">
+								<img src="${fullSrc}" alt="${altText}">
+								<div style="text-align:center; padding: 1em 0 0.5em 0;">
+									<button class="button primary small" onclick="this.closest('#modal-container').classList.remove('visible')">Close</button>
+								</div>
+							</div>
+						`;
+
+						// 触发渐入动画
+						setTimeout(() => container.classList.add('visible'), 10);
+					}
+				});
+			</script>
+</body>
+</html>

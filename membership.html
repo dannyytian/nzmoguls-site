@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Membership - New Zealand Moguls Club</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="assets/css/main.css" />
+	<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<style>
+		/* 当表单被标记为 'was-validated' 时，渲染无效字段的样式 */
+		form.was-validated input:invalid,
+		form.was-validated select:invalid {
+			border: 2px solid #ff4b4b !important; /* 合并边框属性，确保显示 */
+			background-color: rgba(255, 75, 75, 0.05) !important;
+			border-radius: 3px !important; /* 确保边框圆角保持一致 */
+			outline: none !important; /* 移除可能干扰的默认焦点轮廓 */
+		}
+		form.was-validated input[type="checkbox"]:invalid + label:before {
+			border: 2px solid #ff4b4b !important; /* 合并边框属性 */
+			border-radius: 3px !important;
+		}
+	</style>
+	<script>
+		function showTab(tab) {
+			document.getElementById("loginForm").style.display = tab === 'login' ? 'block' : 'none';
+			document.getElementById("registerForm").style.display = tab === 'register' ? 'block' : 'none';
+
+			document.getElementById("tabLogin").classList.toggle("primary", tab === 'login');
+			document.getElementById("tabRegister").classList.toggle("primary", tab === 'register');
+		}
+	</script>
+</head>
+<body class="is-preload">
+
+	<!-- Page Wrapper -->
+	<div id="page-wrapper">
+
+		<!-- Header -->
+		<header id="header">
+			<div class="logo-container">
+				<a href="index.html" class="logo-link">
+					<img src="images/logo.png" alt="NZ Moguls Club Icon" class="logo-icon">
+				</a>
+			</div>
+			<nav id="nav">
+				<ul>
+					<li class="special">
+						<a href="#menu" class="menuToggle"><span>Menu</span></a>
+						<div id="menu">
+							<ul>
+								<li><a href="index.html">Home</a></li>
+								<li><a href="about.html">About</a></li>
+								<li><a href="events.html">Events</a></li>
+								<li><a href="membership.html" id="menu-membership-link">Membership</a></li>
+								<li><a href="results-gallery.html">Results/Gallery</a></li>
+								<li><a href="contact.html">Contact</a></li>
+								<li><a href="membership.html" class="button small fit" id="menu-auth-link">Member Login</a></li>
+							</ul>
+						</div>
+					</li>
+				</ul>
+			</nav>
+		</header>
+
+		<!-- Main -->
+		<article id="main">
+			<header>
+				<h2>Membership</h2>
+				<p>Join our community and access exclusive training and events</p>
+			</header>
+			<section class="wrapper style5">
+				<div class="inner">
+
+					<div style="max-width: 600px; margin: 0 auto;">
+						<ul class="actions fit">
+							<li><a id="tabLogin" class="button primary fit" onclick="showTab('login')">Login</a></li>
+							<li><a id="tabRegister" class="button fit" onclick="showTab('register')">Register</a></li>
+						</ul>
+
+						<!-- LOGIN FORM -->
+						<div id="loginForm">
+							<form method="post" action="#">
+								<div class="row gtr-uniform">
+									<div class="col-12">
+										<input type="email" id="loginEmail" placeholder="Email Address" required />
+									</div>
+									<div class="col-12">
+										<input type="password" id="loginPassword" placeholder="Password" required />
+									</div>
+									<div class="col-12">
+										<ul class="actions stacked">
+											<li><input type="button" id="loginBtn" value="Login" class="primary fit" /></li>
+										</ul>
+									</div>
+								</div>
+							</form>
+						</div>
+
+						<!-- REGISTER FORM -->
+						<div id="registerForm" style="display:none;">
+							<p class="notice-box"><i class="fas fa-info-circle"></i> <strong>Notice:</strong> For minor registration, a parent/guardian must register first, then register the minor by "Adding Family Member" in their profile.</p>
+							<form method="post" action="#">
+								<div class="row gtr-uniform">
+									<div class="col-6 col-12-xsmall">
+										<input type="text" id="registerFirstName" placeholder="First Name" required />
+									</div>
+									<div class="col-6 col-12-xsmall">
+										<input type="text" id="registerLastName" placeholder="Last Name" required />
+									</div>
+									<div class="col-12">
+										<input type="email" id="registerEmail" placeholder="Email Address" required />
+									</div>
+									<div class="col-12">
+										<input type="password" id="registerPassword" placeholder="Password" required />
+									</div>
+									<div class="col-12">
+										<label>Date of Birth</label>
+									</div>
+									<div class="col-4 col-12-xsmall">
+										<select id="registerBirthYear" required>
+											<option value="">- Year -</option>
+										</select>
+									</div>
+									<div class="col-4 col-12-xsmall">
+										<select id="registerBirthMonth" required>
+											<option value="">- Month -</option>
+										</select>
+									</div>
+									<div class="col-4 col-12-xsmall">
+										<select id="registerBirthDay" required>
+											<option value="">- Day -</option>
+										</select>
+									</div>
+									<div class="col-12">
+										<select id="registerMemberType" required>
+											<option value="">- Select Membership Type -</option>
+											<option value="participant">Adult Athlete / Independent Member</option>
+											<option value="guardian">Parent / Guardian (Managing Family)</option>
+											<option value="coach">Coach / Official</option>
+										</select>
+									</div>
+									<div class="col-12">
+										<hr />
+										<h4>Agreements</h4>
+										<div class="col-12">
+											<input type="checkbox" id="registerAgreeGeneral" name="agreeGeneral" required>
+											<label for="registerAgreeGeneral">I have read and agree to the <a href="legal/membership-agreement.html" target="_blank">Membership Agreement</a>, <a href="legal/coc.html" target="_blank">Code of Conduct</a>, and the <a href="legal/general-agreement.html" target="_blank">General Agreement</a> (including Safety Rules, Medical Declaration, and Media Consent).</label>
+										</div>
+										<div class="col-12">
+											<input type="checkbox" id="registerAgreeWaiver" name="agreeWaiver" required>
+											<label for="registerAgreeWaiver">I have read and agree to the <a href="legal/liability-waiver.html" target="_blank">Liability Waiver & Release of Claims</a> of New Zealand Moguls Club Incorporated (NZMC Inc.).</label>
+										</div>
+										<div id="signatureSection" style="margin-top: 1.5em;">
+											<label>Electronic Signature (Type your Full Name)</label>
+											<div class="row gtr-uniform">
+												<div class="col-9 col-12-xsmall">
+													<input type="text" id="registerSignature" placeholder="Full Name" required />
+												</div>
+												<div class="col-3 col-12-xsmall">
+													<button type="button" class="button small fit" id="copyNameBtn">Copy Name</button>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-12">
+										<ul class="actions stacked">
+											<li><input type="button" id="registerBtn" value="Register" class="primary fit" /></li>
+										</ul>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+
+				</div>
+			</section>
+		</article>
+
+		<!-- Footer -->
+		<footer id="footer">
+			<ul class="copyright">
+				<li>&copy; 2026 New Zealand Moguls Club Inc.</li>
+			</ul>
+		</footer>
+	</div>
+
+	<!-- Scripts -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/jquery.scrollex.min.js"></script>
+	<script src="assets/js/jquery.scrolly.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabase-init.js"></script>
+    <script src="assets/js/auth.js"></script>
+</body>
+</html>
