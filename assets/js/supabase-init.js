@@ -8,7 +8,8 @@ const _KEY = '___SUPABASE_ANON_KEY___';
 const isInvalid = (val, name) => 
     !val || 
     val === '___' + name + '___' || 
-    val === '{{' + name + '}}' || 
+    val.includes('{{') || 
+    val.includes('PLACEHOLDER') ||
     val.includes('PLACEHOLDER');
 
 if (isInvalid(_URL, 'SUPABASE_URL') || isInvalid(_KEY, 'SUPABASE_ANON_KEY')) {

@@ -20,14 +20,22 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # 使用 Node.js 进行替换，处理特殊字符更稳健
+          # 使用 Node.js 正则表达式进行全局字面量替换
           node -e "
             const fs = require('fs');
             const filePath = 'assets/js/supabase-init.js';
+            if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+              console.error('ERROR: GitHub Secrets SUPABASE_URL or SUPABASE_ANON_KEY is missing!');
+              process.exit(1);
+            }
             let content = fs.readFileSync(filePath, 'utf8');
-            content = content.replace('___SUPABASE_URL___', process.env.SUPABASE_URL);
-            content = content.replace('___SUPABASE_ANON_KEY___', process.env.SUPABASE_ANON_KEY);
-            fs.writeFileSync(filePath, content);
+            
+            // 使用正则表达式确保精确匹配并替换所有实例
+            const newContent = content
+              .replace(/___SUPABASE_URL___/g, process.env.SUPABASE_URL)
+              .replace(/___SUPABASE_ANON_KEY___/g, process.env.SUPABASE_ANON_KEY);
+            
+            fs.writeFileSync(filePath, newContent);
             console.log('Secrets injected into ' + filePath);
           "
 
