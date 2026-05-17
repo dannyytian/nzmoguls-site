@@ -3,58 +3,62 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - feat/supabase-migration  # 或者是你的默认分支名称
+      -  feat/supabase-migration
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # - name: Inject Supabase Secrets
-      #   run: |
-      #     # 使用 sed 替换占位符。注意这里使用 | 作为分隔符，因为 URL 中包含 /
-      #     sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
-      #     sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
-      - name: Inject Supabase Credentials
+      # 使用更稳固的 Python 脚本进行替换，如果是 {{SUPABASE_URL}} 没变，这一步会直接报错卡死，不会默默通过
+      - name: Inject Supabase Credentials via Python
+        shell: python
         run: |
-          echo "=== 正在检查文件是否存在 ==="
-          ls -la assets/js/ || echo "找不到 assets/js 文件夹！"
+          import os
+
+          url = """${{ secrets.SUPABASE_URL }}"""
+          key = """${{ secrets.SUPABASE_ANON_KEY }}"""
           
-          echo "=== 开始替换占位符 ==="
-          # 使用更安全的 bash 原生替换，或者带验证的 sed
-          sed -i "s|{{SUPABASE_URL}}|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
-          sed -i "s|{{SUPABASE_ANON_KEY}}|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
+          file_path = "assets/js/supabase-init.js"
           
-          echo "=== 检查替换后的文件内容（仅显示前几行验证，不暴露完整 Key） ==="
-          head -n 10 assets/js/supabase-init.js
-      # - name: Inject Supabase Secrets
-      #   run: |
-      #     TARGET_FILE="assets/js/supabase-init.js"
+          if not os.path.exists(file_path):
+              raise FileNotFoundError(f"找不到文件: {file_path}")
+              
+          with open(file_path, "r", encoding="utf-8") as f:
+              content = f.read()
+              
+          # 执行强行替换
+          content = content.replace("{{SUPABASE_URL}}", url)
+          content = content.replace("{{SUPABASE_ANON_KEY}}", key)
           
-      #     # 检查文件是否存在
-      #     if [ ! -f "$TARGET_FILE" ]; then
-      #       echo "Error: $TARGET_FILE not found!"
-      #       exit 1
-      #     fi
-          
-      #     # 执行替换
-      #     sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" "$TARGET_FILE"
-      #     sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" "$TARGET_FILE"
-          
-      #     # 验证是否还残留占位符，如果还有说明没替换成功
-      #     if grep -q "SUPABASE_URL_PLACEHOLDER" "$TARGET_FILE"; then
-      #       echo "Error: Failed to replace SUPABASE_URL_PLACEHOLDER"
-      #       exit 1
-      #     fi
-      
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+          with open(file_path, "w", encoding="utf-8") as f:
+              f.write(content)
+          print("=== Python 替换成功 ===")
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 显式打包当前根目录下的所有文件
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          folder: . # 部署当前目录下所有文件
-          branch: gh-pages # 部署到 gh-pages 分支
-          clean: true # 自动清理不再需要的文件
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
