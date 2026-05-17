@@ -20,26 +20,31 @@ jobs:
       #     # 使用 sed 替换占位符。注意这里使用 | 作为分隔符，因为 URL 中包含 /
       #     sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
       #     sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
-
-      - name: Inject Supabase Secrets
+      - name: Inject Supabase Credentials
         run: |
-          TARGET_FILE="assets/js/supabase-init.js"
+          echo "开始注入 Supabase 配置..."
+          sed -i 's|{{SUPABASE_URL}}|${{ vars.SUPABASE_URL }}|g' assets/js/supabase-init.js
+          sed -i 's|{{SUPABASE_ANON_KEY}}|${{ vars.SUPABASE_ANON_KEY }}|g' assets/js/supabase-init.js
+          echo "注入完成！"
+      # - name: Inject Supabase Secrets
+      #   run: |
+      #     TARGET_FILE="assets/js/supabase-init.js"
           
-          # 检查文件是否存在
-          if [ ! -f "$TARGET_FILE" ]; then
-            echo "Error: $TARGET_FILE not found!"
-            exit 1
-          fi
+      #     # 检查文件是否存在
+      #     if [ ! -f "$TARGET_FILE" ]; then
+      #       echo "Error: $TARGET_FILE not found!"
+      #       exit 1
+      #     fi
           
-          # 执行替换
-          sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" "$TARGET_FILE"
-          sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" "$TARGET_FILE"
+      #     # 执行替换
+      #     sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" "$TARGET_FILE"
+      #     sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" "$TARGET_FILE"
           
-          # 验证是否还残留占位符，如果还有说明没替换成功
-          if grep -q "SUPABASE_URL_PLACEHOLDER" "$TARGET_FILE"; then
-            echo "Error: Failed to replace SUPABASE_URL_PLACEHOLDER"
-            exit 1
-          fi
+      #     # 验证是否还残留占位符，如果还有说明没替换成功
+      #     if grep -q "SUPABASE_URL_PLACEHOLDER" "$TARGET_FILE"; then
+      #       echo "Error: Failed to replace SUPABASE_URL_PLACEHOLDER"
+      #       exit 1
+      #     fi
       
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
