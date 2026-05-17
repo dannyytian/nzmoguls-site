@@ -67,7 +67,7 @@ window.showConfirm = function(title, message) {
 // 登录
 async function handleLogin(email, password) {
     try {
-        const { error } = await window.supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         console.log("Login success");
         window.location.href = "members/dashboard.html";
@@ -79,7 +79,7 @@ async function handleLogin(email, password) {
 // 注册
 async function handleRegister(email, password, firstName, lastName, userType, dob, agreements, signatureName, ipAddress, userAgent) {
     try {
-        const { data, error } = await window.supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -115,7 +115,7 @@ async function handleRegister(email, password, firstName, lastName, userType, do
 // 登出
 async function handleLogout() {
     try {
-        const { error } = await window.supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
         if (error) throw error;
         const isMemberDir = window.location.pathname.includes("/members/");
         window.location.href = isMemberDir ? "../membership.html" : "membership.html";
@@ -125,8 +125,7 @@ async function handleLogout() {
 }
 
 // 动态更新菜单登录/登出按钮
-if (window.supabase && window.supabase.auth && typeof window.supabase.auth.onAuthStateChange === 'function') {
-    window.supabase.auth.onAuthStateChange((event, session) => {
+supabase.auth.onAuthStateChange((event, session) => {
     const user = session?.user;
     const authLink = document.getElementById("menu-auth-link");
     const membershipLink = document.getElementById("menu-membership-link");
@@ -145,7 +144,10 @@ if (window.supabase && window.supabase.auth && typeof window.supabase.auth.onAut
             authLink.innerText = "Log Out";
             authLink.href = "#";
             authLink.className = "button small fit logout-btn";
-            // 统一在 initMemberPages 或 HTML 中处理，避免在这里绑定 onclick 导致冲突
+            authLink.onclick = (e) => {
+                e.preventDefault();
+                handleLogout();
+            };
         }
         if (membershipLink) {
             membershipLink.href = isMemberDir ? "dashboard.html" : "members/dashboard.html";
@@ -165,12 +167,11 @@ if (window.supabase && window.supabase.auth && typeof window.supabase.auth.onAut
             membershipLink.href = isMemberDir ? "../membership.html" : "membership.html";
         }
     }
-    });
-}
+});
 
 // 保护会员页面（未登录自动跳回 membership.html）
 async function protectMemberPage() {
-    const { data: { session } } = await window.supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
         window.location.href = "../membership.html";
     }
@@ -332,28 +333,28 @@ function initMembershipPage() {
 // 初始化会员页面（dashboard / profile / my-events）
 function initMemberPages() {
     protectMemberPage();
+
+    const logoutBtn = document.querySelector(".logout-btn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            handleLogout();
+        });
+    }
 }
 
 // 自动检测当前页面并初始化
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
     const path = window.location.pathname;
 
-    // 全局登出按钮监听（使用 capture: true 绕过模板的 stopPropagation）
-    document.addEventListener("click", (e) => {
-        const logoutBtn = e.target.classList.contains("logout-btn") ? e.target : e.target.closest(".logout-btn");
-        if (logoutBtn) {
-            e.preventDefault();
-            handleLogout();
-        }
-    }, true);
-
-    // 登录/注册页面初始化
-    if (path.includes("membership.html") || path.includes("signup.html")) {
+    if (path.endsWith("membership.html") || path.endsWith("signup.html")) {
         initMembershipPage();
     }
 
-    // 会员区域页面初始化 (匹配 members 目录下的所有页面)
-    if (path.includes("/members/")) {
+    if (
+        path.includes("/members/dashboard.html") ||
+        path.includes("/members/profile.html") ||
+        path.includes("/members/my-events.html")
+    ) {
         initMemberPages();
     }
 });

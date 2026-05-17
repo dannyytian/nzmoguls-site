@@ -5,6 +5,3 @@ Thumbs.db
 .env
 .env.local
 .env.development.local
-
-# 忽略本地 Supabase 初始化配置
-assets/js/supabase-init.js

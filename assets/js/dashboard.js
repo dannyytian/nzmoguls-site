@@ -1,249 +1,197 @@
 // dashboard.js
 // 负责加载并显示会员仪表盘的数据
-// 依赖：supabase-init.js + auth.js 已经加载
 
-window.supabase.auth.onAuthStateChange(async (event, session) => {
+supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
         const user = session.user;
         const memberNameEl = document.getElementById("memberName");
-        const familySection = document.getElementById("familySection");
-        const familyList = document.getElementById("familyList");
-        const addBtn = document.getElementById("addMemberBtn");
-
         if (!memberNameEl) return;
 
-        // 1. 立即响应：Metadata 优先渲染姓名并开启加载状态
-        const metaFirstName = user.user_metadata?.first_name || "";
-        const metaLastName = user.user_metadata?.last_name || "";
-        memberNameEl.innerText = `${metaFirstName} ${metaLastName}`.trim() || "Member";
+        // Supabase Auth 元数据中获取姓名
+        const firstName = user.user_metadata?.first_name || "";
+        const lastName = user.user_metadata?.last_name || "";
+        const fullName = `${firstName} ${lastName}`.trim();
+        memberNameEl.innerText = fullName || "Member";
 
-        try {
-            // 2. 初步权限 UI 响应
-            const metaType = user.user_metadata?.user_type;
-            if (['guardian', 'adult_athlete'].includes(metaType)) {
-                if (familySection) familySection.style.display = "block";
-            }
+        // 优化：初次显示逻辑基于元数据，防止 UI 闪烁
+        const userType = user.user_metadata?.user_type;
+        const familySection = document.getElementById("familySection");
+        
+        // 业务逻辑优化：
+        // 1. 监护人、成年运动员和管理员可以【查看】家庭区块
+        // 2. 但只有监护人和管理员可以【添加/删除】成员
+        const canManageFamily = ['guardian', 'adult_athlete'].includes(userType);
 
-            // 3. 核心任务：获取 Profile 资料
-            const { data: profile, error: pError } = await window.supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            if (pError) console.warn("Profile fetch error:", pError.message);
-
-            if (profile) {
-                // 同步数据库中的最新姓名
-                const dbFullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-                if (dbFullName) memberNameEl.innerText = dbFullName;
-
-                // 4. 设置添加按钮权限
-                if (addBtn && profile.user_type === 'guardian') {
-                    addBtn.style.display = "inline-block";
-                    addBtn.onclick = (e) => {
-                        e.preventDefault();
-                        window.location.href = `profile.html?add=true&familyId=${profile.family_id || profile.id}`;
-                    };
-                }
-
-                // 6. 后台静默加载：家庭成员和邀请 (非阻塞)
-                const canManageFamily = ['guardian', 'adult_athlete'].includes(profile.user_type);
-                if (canManageFamily) {
-                    // 清空列表并显示正在加载的文案
-                    if (familyList) familyList.innerHTML = "<p>Updating family information...</p>";
-
-                    // 执行后台异步查询，不再 await 它们以免阻塞主流程的 finally 块
-                    try {
-                        // 即使没有 family_id，也要检查是否有收到的邀请
-                        loadReceivedInvitations(profile.email, familySection, familyList);
-
-                        if (profile.family_id) {
-                            loadSentInvitations(user.id, familyList);
-                            loadFamilyMembers(profile.family_id, user.id, familyList);
-                        } else {
-                            if (familyList) familyList.innerHTML = '<p style="padding-left: 1.5em;">No other family members added yet.</p>';
-                        }
-                    } catch (inviteError) {
-                        console.warn("Background load error:", inviteError.message);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("加载仪表盘数据出错:", error);
-            memberNameEl.innerText = "Member";
+        if (canManageFamily) {
+            if (familySection) familySection.style.display = "block";
+            loadFamilySection(user.id);
+        } else {
+            if (familySection) familySection.style.display = "none";
         }
+
+        // 检查是否有待处理的邀请
+        checkPendingInvitations(user.email, user.id);
     }
 });
 
 /**
- * 加载家庭成员列表 (重构为独立函数)
+ * 检查并显示家庭加入邀请
  */
-async function loadFamilyMembers(familyId, currentUserId, container) {
-    const { data: members, error } = await window.supabase
-        .from('profiles')
-        .select('id, first_name, last_name, user_type, guardian_consent_at')
-        .eq('family_id', familyId)
-        .neq('id', currentUserId);
-
-    if (error || !container) return;
-
-    // 清空正在加载的文案
-    container.innerHTML = "";
-    if (members && members.length > 0) {
-        members.forEach(member => {
-            const col = document.createElement("div");
-            col.className = "col-6 col-12-xsmall";
-            const typeLabel = member.user_type === 'minor_athlete' ? 'Minor Athlete' : 'Member';
-            const needsConsent = member.user_type === 'minor_athlete' && !member.guardian_consent_at;
-            const actionTag = needsConsent ? '<span style="color: #ed4933; font-weight: bold; font-size: 0.8em; display: block; margin-bottom: 0.5em;"><i class="fas fa-exclamation-triangle"></i> Action Required: Consent Needed</span>' : '';
-
-            col.innerHTML = `
-                <div class="box" style="padding: 1.5em; margin-bottom: 1em;">
-                    <h4>${member.first_name} ${member.last_name}</h4>
-                    ${actionTag}
-                    <p style="margin-bottom: 1.5em; font-size: 0.9em; opacity: 0.8;">Role: ${typeLabel}</p>
-                    <ul class="actions">
-                        <li><a href="profile.html?uid=${member.id}" class="button primary small">Edit Profile</a></li>
-                    </ul>
-                </div>`;
-            container.appendChild(col);
-        });
-    } else {
-        container.innerHTML = '<p style="padding-left: 1.5em;">No other family members added yet.</p>';
-    }
-}
-/**
- * 加载监护人发出的待处理邀请
- */
-async function loadSentInvitations(inviterId, container) {
-    const { data: invites, error } = await window.supabase
+async function checkPendingInvitations(email, uid) {
+    const { data: invites, error } = await supabase
         .from('family_invitations')
-        .select('*')
-        .eq('inviter_id', inviterId)
-        .eq('status', 'pending');
-
-    if (error || !invites) return;
-
-    invites.forEach(invite => {
-        const col = document.createElement("div");
-        col.className = "col-6 col-12-xsmall";
-        col.innerHTML = `
-            <div class="box" style="padding: 1.5em; margin-bottom: 1em; border-style: dashed; opacity: 0.7;">
-                <h4>${invite.invitee_email}</h4>
-                <p style="margin-bottom: 1.5em; font-size: 0.9em;">Status: <strong>Pending Invitation</strong></p>
-                <ul class="actions">
-                    <li><button class="button small" onclick="cancelInvitation('${invite.id}')">Cancel</button></li>
-                </ul>
-            </div>
-        `;
-        container.appendChild(col);
-    });
-}
-
-/**
- * 加载用户收到的邀请（来自其他监护人）
- */
-async function loadReceivedInvitations(email, section, container) {
-    const { data: invites, error } = await window.supabase
-        .from('family_invitations')
-        .select('*, inviter:profiles(first_name, last_name)')
+        .select('*, profiles:inviter_id(first_name, last_name)')
         .eq('invitee_email', email)
         .eq('status', 'pending');
 
     if (error || !invites || invites.length === 0) return;
 
-    // 如果有收到邀请，确保 section 可见
-    if (section) section.style.display = "block";
+    // 在页面顶部显示邀请通知（这里可以根据你的 UI 调整）
+    for (const invite of invites) {
+        const msg = `You are invited to join the family of ${invite.profiles.first_name} ${invite.profiles.last_name}. Do you want to accept?`;
+        const confirmed = await showConfirm("Family Invitation", msg);
+        if (confirmed) {
+            await handleAcceptInvitation(invite, uid);
+        }
+    }
+}
 
-    invites.forEach(invite => {
-        const inviterName = invite.inviter ? `${invite.inviter.first_name} ${invite.inviter.last_name}` : "A Guardian";
-        const col = document.createElement("div");
-        col.className = "col-12";
-        col.innerHTML = `
-            <div class="box" style="padding: 1.5em; margin-bottom: 1em; background: rgba(33, 178, 166, 0.1); border: 2px solid #21b2a6;">
-                <h4>Family Invitation</h4>
-                <p><strong>${inviterName}</strong> has invited you to join their family group.</p>
-                <ul class="actions">
-                    <li><button class="button primary small" onclick="acceptInvitation('${invite.id}', '${invite.family_id}')">Accept</button></li>
-                    <li><button class="button small" onclick="cancelInvitation('${invite.id}')">Decline</button></li>
-                </ul>
-            </div>
-        `;
-        // 将收到的邀请放在列表最前面
-        if (container) container.insertBefore(col, container.firstChild);
-    });
+async function handleAcceptInvitation(invite, uid) {
+    try {
+        // 1. 更新自己的 family_id
+        const { error: uError } = await supabase
+            .from('profiles')
+            .update({ family_id: invite.family_id })
+            .eq('id', uid);
+        
+        if (uError) throw uError;
+
+        // 2. 将邀请标记为已接受
+        await supabase
+            .from('family_invitations')
+            .update({ status: 'accepted' })
+            .eq('id', invite.id);
+
+        showNotification("Successfully joined the family!", "success");
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+        showNotification("Failed to join family: " + err.message, "error");
+    }
+}
+/**
+ * 加载监护人名下的家庭成员
+ */
+async function loadFamilySection(uid) {
+    const familySection = document.getElementById("familySection");
+    const familyList = document.getElementById("familyList");
+
+    if (!familySection || !familyList) return;
+
+    try {
+        // 1. 获取当前用户的 family_id 和类型
+        const { data: profile, error: pError } = await supabase
+            .from('profiles')
+            .select('id, family_id, user_type')
+            .eq('id', uid)
+            .single();
+
+        // 获取当前 Session 用于二次验证管理员身份
+        const { data: { session } } = await supabase.auth.getSession();
+        const isAllowedType = ['guardian', 'adult_athlete', 'participant'].includes(profile?.user_type);
+
+        if (pError || !profile || !isAllowedType) {
+            familySection.style.display = "none";
+            return;
+        }
+
+        // 权限判断：只有监护人和管理员能看到“Add Participant”按钮
+        const addBtn = document.getElementById("addMemberBtn");
+        const canEditFamily = profile.user_type === 'guardian';
+        
+        if (addBtn) {
+            if (canEditFamily) {
+                const fid = profile.family_id || profile.id;
+                addBtn.href = `profile.html?mode=add&family_id=${fid}`;
+                addBtn.style.display = "inline-block";
+            } else {
+                // 成年运动员虽然能看到区块，但不能添加成员
+                addBtn.style.display = "none";
+            }
+        }
+
+        if (!profile.family_id) {
+            familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>No family members added yet.</p></div>";
+            return;
+        }
+
+        familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>Loading family members...</p></div>";
+
+        // 2. 获取同一家庭下的其他成员
+        const { data: members, error: mError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, user_type, email')
+            .eq('family_id', profile.family_id)
+            .neq('id', uid) // 排除自己
+            .is('deleted_at', null); // 仅加载未标记删除的成员
+
+        if (mError) throw mError;
+
+        familyList.innerHTML = "";
+
+        if (!members || members.length === 0) {
+            familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>No family members added yet.</p></div>";
+            return;
+        }
+
+        // 3. 渲染列表
+        members.forEach(member => {
+            const col = document.createElement("div");
+            col.className = "col-12"; // 改为占满左侧列的宽度，排版更整齐
+            col.innerHTML = `
+                <section class="box">
+                    <h3>${member.first_name} ${member.last_name}</h3>
+                    <p style="margin-bottom: 0.5em; font-size: 0.9em; opacity: 0.8;">${member.email}</p>
+                    <p>Role: <strong>${member.user_type}</strong></p>
+                    <ul class="actions">
+                        <li><a href="profile.html?id=${member.id}" class="button ${canEditFamily ? 'primary' : ''} small">View Profile</a></li>
+                        <li><a href="my-events.html?id=${member.id}" class="button small">View Events</a></li>
+                        ${canEditFamily ? `<li><button onclick="handleDeleteMember('${member.id}')" class="button small">Delete</button></li>` : ''}
+                    </ul>
+                </section>`;
+            familyList.appendChild(col);
+        });
+
+    } catch (err) {
+        console.error("Error loading family members:", err);
+    }
 }
 
 /**
- * 接受邀请逻辑
+ * 删除家庭成员逻辑
  */
-window.acceptInvitation = async function(inviteId, familyId) {
-    const { data: { session } } = await window.supabase.auth.getSession();
-    if (!session) return;
+window.handleDeleteMember = async function(memberId) {
+    const confirmed = await showConfirm(
+        "Confirm Removal",
+        "Are you sure you want to remove this family member? They will no longer appear in your dashboard, but their records will be preserved."
+    );
 
-    const confirmed = await showConfirm("Join Family", "Are you sure you want to join this family group?");
     if (!confirmed) return;
 
     try {
-        // 1. 更新自己的 profile，关联 family_id
-        const { error: pError } = await window.supabase
+        const { error } = await supabase
             .from('profiles')
-            .update({ family_id: familyId })
-            .eq('id', session.user.id);
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', memberId);
 
-        if (pError) throw pError;
+        if (error) throw error;
 
-        // 2. 删除已接受的邀请
-        await window.supabase
-            .from('family_invitations')
-            .delete()
-            .eq('id', inviteId);
-
-        showNotification("Success! You have joined the family.");
-        location.reload(); 
+        showNotification("Member removed successfully.", "success");
+        // 重新加载列表
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) loadFamilySection(session.user.id);
+        
     } catch (err) {
-        showNotification(err.message, "error");
-    }
-};
-
-/**
- * 取消或拒绝邀请
- */
-window.cancelInvitation = async function(inviteId) {
-    const { error } = await window.supabase
-        .from('family_invitations')
-        .delete()
-        .eq('id', inviteId);
-
-    if (!error) {
-        showNotification("Invitation removed.");
-        location.reload();
-    }
-};
-
-/**
- * 监护人发送邀请逻辑
- */
-window.handleInviteMember = async function(familyId) {
-    const email = prompt("Enter the email address of the member you want to invite:");
-    if (!email) return;
-
-    const { data: { user } } = await window.supabase.auth.getUser();
-    
-    const { error } = await window.supabase
-        .from('family_invitations')
-        .insert([{
-            family_id: familyId,
-            inviter_id: user.id,
-            invitee_email: email.trim().toLowerCase(),
-            status: 'pending'
-        }]);
-
-    if (error) {
-        showNotification("Failed to send invite: " + error.message, "error");
-    } else {
-        showNotification("Invitation sent to " + email);
-        location.reload();
+        console.error("Delete failed:", err);
+        showNotification("Failed to remove member: " + err.message, "error");
     }
 };
