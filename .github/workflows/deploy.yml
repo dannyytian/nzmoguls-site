@@ -22,10 +22,16 @@ jobs:
       #     sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
       - name: Inject Supabase Credentials
         run: |
-          echo "开始注入 Supabase 配置..."
-          sed -i 's|{{SUPABASE_URL}}|${{ vars.SUPABASE_URL }}|g' assets/js/supabase-init.js
-          sed -i 's|{{SUPABASE_ANON_KEY}}|${{ vars.SUPABASE_ANON_KEY }}|g' assets/js/supabase-init.js
-          echo "注入完成！"
+          echo "=== 正在检查文件是否存在 ==="
+          ls -la assets/js/ || echo "找不到 assets/js 文件夹！"
+          
+          echo "=== 开始替换占位符 ==="
+          # 使用更安全的 bash 原生替换，或者带验证的 sed
+          sed -i "s|{{SUPABASE_URL}}|${{ secrets.SUPABASE_URL }}|g" assets/js/supabase-init.js
+          sed -i "s|{{SUPABASE_ANON_KEY}}|${{ secrets.SUPABASE_ANON_KEY }}|g" assets/js/supabase-init.js
+          
+          echo "=== 检查替换后的文件内容（仅显示前几行验证，不暴露完整 Key） ==="
+          head -n 10 assets/js/supabase-init.js
       # - name: Inject Supabase Secrets
       #   run: |
       #     TARGET_FILE="assets/js/supabase-init.js"
