@@ -3,7 +3,7 @@
 // 从 Supabase Dashboard -> Project Settings -> API 获取以下信息
  const SUPABASE_URL = 'SUPABASE_URL_PLACEHOLDER';
  const SUPABASE_ANON_KEY = 'SUPABASE_ANON_KEY_PLACEHOLDER';
-
+ 
 // 初始化全局 supabase 客户端，并配置 Auth 持久化
 window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
