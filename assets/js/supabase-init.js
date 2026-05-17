@@ -1,16 +1,15 @@
 // assets/js/supabase-init.js
 
 // 占位符：由 GitHub Actions 在部署时替换
-const _URL = '___SUPABASE_URL___';
-const _KEY = '___SUPABASE_ANON_KEY___';
+const _URL = 'https://zgjtpgnkxiaaxicezwte.supabase.co';
+const _KEY = 'sb_publishable_E8GkM8xtAT03-SW3Y87tnQ_iwDltrcb';
 
 // 辅助检查函数：判断是否为占位符或空值
 const isInvalid = (val, name) => 
     !val || 
     val === '___' + name + '___' || 
-    val.includes('{{') || 
-    val.includes('PLACEHOLDER') ||
-    val.includes('PLACEHOLDER');
+    (typeof val === 'string' && val.includes('{{')) || 
+    (typeof val === 'string' && val.includes('PLACEHOLDER'));
 
 if (isInvalid(_URL, 'SUPABASE_URL') || isInvalid(_KEY, 'SUPABASE_ANON_KEY')) {
     const msg = "Supabase configuration is missing or invalid! \n" +
