@@ -6,8 +6,6 @@ Thumbs.db
 .env.local
 .env.development.local
 
-assets/js/supabase-init.js
-
 # 编辑器与依赖
 .vscode/
 node_modules/
