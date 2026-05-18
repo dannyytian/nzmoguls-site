@@ -151,6 +151,12 @@
 											<input type="checkbox" id="registerAgreeWaiver" name="agreeWaiver" required>
 											<label for="registerAgreeWaiver">I have read and agree to the <a href="legal/liability-waiver.html" target="_blank">Liability Waiver & Release of Claims</a> of New Zealand Moguls Club Incorporated (NZMC Inc.).</label>
 										</div>
+										<!-- NEW MANDATORY ACCURACY CONFIRMATION FOR ADULTS -->
+										<div class="col-12">
+											<input type="checkbox" id="registerAccuracyConfirm" name="accuracyConfirm" required>
+											<label for="registerAccuracyConfirm" style="color: #ed4933;">I confirm that the information provided above, including my name and date of birth, is accurate. I understand that falsifying this information may void my race eligibility and insurance coverage.</label>
+										</div>
+
 										<div id="signatureSection" style="margin-top: 1.5em;">
 											<label>Electronic Signature (Type your Full Name)</label>
 											<div class="row gtr-uniform">
@@ -186,6 +192,8 @@
 	</div>
 
 	<!-- Scripts -->
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="assets/js/supabase-init.js"></script>
 	<script src="assets/js/jquery.min.js"></script>
 	<script src="assets/js/jquery.scrollex.min.js"></script>
 	<script src="assets/js/jquery.scrolly.min.js"></script>
@@ -193,8 +201,6 @@
 	<script src="assets/js/breakpoints.min.js"></script>
 	<script src="assets/js/util.js"></script>
 	<script src="assets/js/main.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/supabase-init.js"></script>
     <script src="assets/js/auth.js"></script>
 </body>
 </html>

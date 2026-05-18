@@ -181,13 +181,17 @@ async function registerForEvent(uid, eventId) {
 
         if (regError) throw regError;
 
-        // 4. 签署免责声明 (如果是监护人代报，signer_id 为监护人，profile_id 为孩子)
+        // 4. 签署免责声明：记录签署时的快照签名
+        // 获取当前签署人的姓名快照
+        const signerName = (profile.first_name + ' ' + profile.last_name).trim();
+
         const { error: agreeError } = await supabase
             .from('legal_agreements')
             .insert([{
                 registration_id: newReg.id,
                 profile_id: targetProfileId,
                 signer_id: uid,
+                signature_name: signerName, // 记录签署当时的姓名快照
                 agreement_type: 'waiver',
                 is_accepted: true
             }]);

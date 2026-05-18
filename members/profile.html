@@ -127,6 +127,13 @@
 												<textarea name="medical_conditions" id="medical_conditions" rows="4"></textarea>
 											</div>
 
+											<!-- ADMIN AMENDMENT NOTICE (Hidden by default) -->
+											<div id="adminAmendmentNotice" class="col-12" style="display: none;">
+												<p style="color: #ed4933; font-size: 0.9em; font-weight: bold; border: 1px solid #ed4933; padding: 1em; border-radius: 5px;">
+													<i class="fas fa-exclamation-circle"></i> To amend critical information (Name/DOB) after submission, please contact the administrator at <a href="mailto:admin@nzmoguls.org.nz">admin@nzmoguls.org.nz</a> with a valid ID.
+												</p>
+											</div>
+
 											<!-- GUARDIAN CONSENT FOR MINOR (Only visible if Minor Athlete and Age < 18) -->
 											<div id="minorGuardianConsentSection" class="col-12" style="display: none; margin-top: 1.5em; padding: 1.5em; background: rgba(144, 144, 144, 0.05); border-radius: 5px;">
 												<h5>Parent / Guardian Consent for Minor</h5>
@@ -135,6 +142,12 @@
 													<label for="minorAgreeCheckbox">I am the parent/legal guardian and I agree to all terms on behalf of the minor as outlined in the <a href="../legal/parent-consent.html" target="_blank">Parent / Guardian Consent</a>.</label>
 												</div>
 												<div class="row gtr-uniform">
+													<!-- NEW MANDATORY GUARDIAN CONFIRMATION -->
+													<div class="col-12">
+														<input type="checkbox" id="guardianIntegrityConfirm" name="guardianConfirm" required>
+														<label for="guardianIntegrityConfirm" style="color: #ed4933;">I confirm that I am the legal parent/guardian of the child named above, and the date of birth entered is accurate. I understand that falsifying this information may void race eligibility and insurance coverage.</label>
+													</div>
+
 													<div class="col-9 col-12-xsmall">
 														<input type="text" id="minorGuardianSignature" placeholder="Parent/Guardian Full Name (Electronic Signature)">
 													</div>
@@ -181,7 +194,7 @@
 														<input type="button" value="Save Changes" class="primary btn" />
 														<div id="saveSpinner" class="spinner hidden"></div>
 													</li>
-													<li><input type="button" id="cancelBtn" value="Cancel" class="btn" /></li>
+													<li><a href="dashboard.html" class="button fit" id="cancelBtn">Cancel</a></li>
 												</ul>
 											</div>
 										</div>

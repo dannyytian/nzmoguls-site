@@ -67,7 +67,7 @@ window.showConfirm = function(title, message) {
 // 登录
 async function handleLogin(email, password) {
     try {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await window.supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         console.log("Login success");
         window.location.href = "members/dashboard.html";
@@ -77,9 +77,20 @@ async function handleLogin(email, password) {
 }
 
 // 注册
-async function handleRegister(email, password, firstName, lastName, userType, dob, agreements, signatureName, ipAddress, userAgent) {
+async function handleRegister(email, password, firstName, lastName, userType, dob, agreements, signatureName, ipAddress, userAgent, isConfirmed) {
     try {
-        const { data, error } = await supabase.auth.signUp({
+        // 验证电子签名：确保输入的签名与填写的姓名完全一致（含空格处理）
+        const fullName = `${firstName} ${lastName}`.trim();
+        if (signatureName !== fullName) {
+            throw new Error("The electronic signature must match your full name exactly.");
+        }
+
+        // 拦截并验证协议勾选情况：确保所有必需的协议都已在数组中
+        if (!agreements || agreements.length < 2) {
+            throw new Error("You must accept all legal agreements and waivers to proceed with registration.");
+        }
+
+        const { data, error } = await window.supabase.auth.signUp({
             email,
             password,
             options: {
@@ -89,14 +100,45 @@ async function handleRegister(email, password, firstName, lastName, userType, do
                     user_type: userType,
                     date_of_birth: dob,
                     accepted_agreements: agreements,
-                    signature_name: signatureName,
+                    member_signature_name: signatureName, // 对应 profiles 表的字段名
                     ip_address: ipAddress,
-                    user_agent: userAgent
+                    user_agent: userAgent,
+                    is_confirmed: isConfirmed
                 }
             }
         });
 
         if (error) throw error;
+
+        // 法律存证：将注册时签署的协议存入 legal_agreements 表
+        if (data.user) {
+            const uid = data.user.id;
+            const agreementEntries = [];
+
+            // 为勾选的每一项协议创建记录
+            if (agreements.includes("general_agreement")) {
+                agreementEntries.push({
+                    profile_id: uid,
+                    signer_id: uid,
+                    signature_name: signatureName,
+                    agreement_type: 'membership_general',
+                    is_accepted: true
+                });
+            }
+            if (agreements.includes("liability_waiver")) {
+                agreementEntries.push({
+                    profile_id: uid,
+                    signer_id: uid,
+                    signature_name: signatureName,
+                    agreement_type: 'membership_waiver',
+                    is_accepted: true
+                });
+            }
+
+            if (agreementEntries.length > 0) {
+                await window.supabase.from('legal_agreements').insert(agreementEntries);
+            }
+        }
 
         console.log("Register success");
         if (data.session) {
@@ -115,7 +157,7 @@ async function handleRegister(email, password, firstName, lastName, userType, do
 // 登出
 async function handleLogout() {
     try {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await window.supabase.auth.signOut();
         if (error) throw error;
         const isMemberDir = window.location.pathname.includes("/members/");
         window.location.href = isMemberDir ? "../membership.html" : "membership.html";
@@ -125,53 +167,55 @@ async function handleLogout() {
 }
 
 // 动态更新菜单登录/登出按钮
-supabase.auth.onAuthStateChange((event, session) => {
-    const user = session?.user;
-    const authLink = document.getElementById("menu-auth-link");
-    const membershipLink = document.getElementById("menu-membership-link");
-    const bannerActions = document.getElementById("banner-actions");
+window.supabase.auth.onAuthStateChange((event, session) => {
+    if (window.supabase && window.supabase.auth) {
+        const user = session?.user;
+        const authLink = document.getElementById("menu-auth-link");
+        const membershipLink = document.getElementById("menu-membership-link");
+        const bannerActions = document.getElementById("banner-actions");
 
-    if (!authLink && !membershipLink && !bannerActions) return;
+        if (!authLink && !membershipLink && !bannerActions) return;
 
-    const isMemberDir = window.location.pathname.includes("/members/");
-    
-    if (user) {
-        // 已登录状态
-        if (bannerActions) {
-            bannerActions.style.display = "none";
-        }
-        if (authLink) {
-            authLink.innerText = "Log Out";
-            authLink.href = "#";
-            authLink.className = "button small fit logout-btn";
-            authLink.onclick = (e) => {
-                e.preventDefault();
-                handleLogout();
-            };
-        }
-        if (membershipLink) {
-            membershipLink.href = isMemberDir ? "dashboard.html" : "members/dashboard.html";
-        }
-    } else {
-        // 未登录状态
-        if (bannerActions) {
-            bannerActions.style.display = "";
-        }
-        if (authLink) {
-            authLink.innerText = "Member Login";
-            authLink.href = isMemberDir ? "../membership.html" : "membership.html";
-            authLink.className = "button small fit";
-            authLink.onclick = null; // 恢复正常链接跳转
-        }
-        if (membershipLink) {
-            membershipLink.href = isMemberDir ? "../membership.html" : "membership.html";
+        const isMemberDir = window.location.pathname.includes("/members/");
+        
+        if (user) {
+            // 已登录状态
+            if (bannerActions) {
+                bannerActions.style.display = "none";
+            }
+            if (authLink) {
+                authLink.innerText = "Log Out";
+                authLink.href = "#";
+                authLink.className = "button small fit logout-btn";
+                authLink.onclick = (e) => {
+                    e.preventDefault();
+                    handleLogout();
+                };
+            }
+            if (membershipLink) {
+                membershipLink.href = isMemberDir ? "dashboard.html" : "members/dashboard.html";
+            }
+        } else {
+            // 未登录状态
+            if (bannerActions) {
+                bannerActions.style.display = "";
+            }
+            if (authLink) {
+                authLink.innerText = "Member Login";
+                authLink.href = isMemberDir ? "../membership.html" : "membership.html";
+                authLink.className = "button small fit";
+                authLink.onclick = null; // 恢复正常链接跳转
+            }
+            if (membershipLink) {
+                membershipLink.href = isMemberDir ? "../membership.html" : "membership.html";
+            }
         }
     }
 });
 
 // 保护会员页面（未登录自动跳回 membership.html）
 async function protectMemberPage() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await window.supabase.auth.getSession();
     if (!session) {
         window.location.href = "../membership.html";
     }
@@ -313,7 +357,8 @@ function initMembershipPage() {
             const agreements = [];
             if (document.getElementById("registerAgreeGeneral")?.checked) agreements.push("general_agreement");
             if (document.getElementById("registerAgreeWaiver")?.checked) agreements.push("liability_waiver");
-            
+            const isConfirmed = document.getElementById("registerAccuracyConfirm")?.checked || false;
+
             const userAgent = navigator.userAgent;
             const dob = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
 
@@ -321,10 +366,10 @@ function initMembershipPage() {
             fetch('https://api.ipify.org?format=json')
                 .then(res => res.json())
                 .then(data => {
-                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, data.ip, userAgent);
+                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, data.ip, userAgent, isConfirmed);
                 })
                 .catch(() => {
-                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, "Unknown", userAgent);
+                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, "Unknown", userAgent, isConfirmed);
                 });
         });
     }
@@ -343,18 +388,24 @@ function initMemberPages() {
 }
 
 // 自动检测当前页面并初始化
-window.addEventListener("load", () => {
+document.addEventListener("DOMContentLoaded", () => {
     const path = window.location.pathname;
 
+    // 全局登出按钮监听（使用 capture: true 绕过模板的 stopPropagation）
+    document.addEventListener("click", (e) => {
+        const logoutBtn = e.target.classList.contains("logout-btn") ? e.target : e.target.closest(".logout-btn");
+        if (logoutBtn) {
+            e.preventDefault();
+            handleLogout();
+        }
+    }, true);
+
+    // 登录/注册页面初始化
     if (path.endsWith("membership.html") || path.endsWith("signup.html")) {
         initMembershipPage();
     }
 
-    if (
-        path.includes("/members/dashboard.html") ||
-        path.includes("/members/profile.html") ||
-        path.includes("/members/my-events.html")
-    ) {
+    if (path.includes("/members/")) {
         initMemberPages();
     }
 });

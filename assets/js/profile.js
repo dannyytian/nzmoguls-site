@@ -1,112 +1,98 @@
 // profile.js
 // 依赖：supabase-init.js + auth.js 已经加载
 
-// 保护页面：监听登录状态
-supabase.auth.onAuthStateChange(async (event, session) => {
+let currentProfileUid = null;
+let isAddMode = false;
+let familyIdToAdd = null;
+let guardianEmail = null; // 存储当前监护人的邮箱
+let guardianName = null;  // 存储当前监护人的姓名
+let originalProfile = null; // 存储加载时的原始资料，用于对比姓名变更
+
+// 保护页面：未登录自动跳回 membership.html
+window.supabase.auth.onAuthStateChange(async (event, session) => {
     if (!session?.user) {
         window.location.href = "../membership.html";
         return;
     }
+    guardianEmail = session.user.email;
+    guardianName = `${session.user.user_metadata.first_name} ${session.user.user_metadata.last_name}`.trim();
 
+    // 1. 模式判定与资料定位
     const urlParams = new URLSearchParams(window.location.search);
-    const isAddMode = urlParams.get('mode') === 'add';
+    isAddMode = urlParams.get('add') === 'true';
+    familyIdToAdd = urlParams.get('familyId');
+    currentProfileUid = urlParams.get('uid') || session.user.id;
 
     if (isAddMode) {
-        console.log("Creating new family member...");
+        // 添加成员模式：初始化 UI
         populateBirthDateDropdowns();
-        document.getElementById("email").disabled = false; // 新建时允许填写 Email
-        document.getElementById("useMyEmailContainer").style.display = "block"; // 显示快捷按钮
-        document.getElementById("memberType").disabled = true; // 初始禁用，等待选择 DOB
-        document.querySelector(".primary.btn").value = "Add Member";
 
-        // 监听成员类型和日期变化以控制监护人区块显示
-        const fields = ['memberType', 'birthYear', 'birthMonth', 'birthDay'];
-        fields.forEach(id => {
-            document.getElementById(id).addEventListener('change', updateAddMemberUI);
+        // 监听生日变化以实时切换邮箱逻辑
+        ['birthYear', 'birthMonth', 'birthDay'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', updateEmailAndTypeBasedOnAge);
         });
-        
-        // 显示法律协议和通知
+
+        // 初始状态下允许编辑，直到输入生日触发判定
+        document.getElementById("email").disabled = false;
+        document.getElementById("memberType").disabled = false;
+
         document.getElementById("addMemberAgreements").style.display = "block";
         document.getElementById("minorNotice").style.display = "block";
-        document.getElementById("registerSignature").setAttribute('required', '');
-        document.getElementById("registerAgreeGeneral").setAttribute('required', '');
-        document.getElementById("registerAgreeWaiver").setAttribute('required', '');
-
-        return;
+        
+        const saveBtn = document.querySelector(".primary.btn");
+        if (saveBtn) saveBtn.value = "Add Member";
+        
+        console.log("Mode: Add Family Member");
+    } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        // 编辑模式：加载已有数据
+        console.log("Mode: Edit Profile, Target UID:", currentProfileUid);
+        loadUserProfile(currentProfileUid);
     }
-
-    const targetUid = urlParams.get('id') || session.user.id;
-    console.log("Loading profile for:", targetUid);
-    loadUserProfile(targetUid);
 });
 
-/**
- * 处理添加成员时的 UI 交互逻辑
- */
-function updateAddMemberUI() {
+// 根据年龄动态更新邮箱和会员类型（仅限添加成员模式）
+function updateEmailAndTypeBasedOnAge() {
+    if (!isAddMode) return;
+
     const year = document.getElementById("birthYear").value;
     const month = document.getElementById("birthMonth").value;
     const day = document.getElementById("birthDay").value;
-    const memberTypeSelect = document.getElementById("memberType");
-    const signatureLabel = document.getElementById("signatureLabel");
-    const consentSection = document.getElementById("minorGuardianConsentSection");
 
     const age = calculateAge(year, month, day);
-    
-    // 1. 处理 Membership Type 下拉框的逻辑
-    if (age === null) {
-        // 未填写完整 DOB 时，禁用下拉框
-        memberTypeSelect.disabled = true;
-        memberTypeSelect.value = "";
-    } else {
-        memberTypeSelect.disabled = false;
-        const options = memberTypeSelect.options;
+    const emailInput = document.getElementById("email");
+    const typeSelect = document.getElementById("memberType");
+    const consentSection = document.getElementById("minorGuardianConsentSection");
+    const sigLabel = document.getElementById("signatureLabel");
 
-        if (age < 18) {
-            // 未成年：自动定为未成年运动员
-            memberTypeSelect.value = "minor_athlete";
-            // 隐藏成人选项
-            for (let i = 0; i < options.length; i++) {
-                const val = options[i].value;
-                options[i].hidden = (val === 'adult_athlete' || val === 'guardian');
-            }
-        } else {
-            // 成年：允许选择成年运动员或监护人
-            if (memberTypeSelect.value === "minor_athlete") {
-                memberTypeSelect.value = "";
-            }
-            // 隐藏未成年选项
-            for (let i = 0; i < options.length; i++) {
-                options[i].hidden = (options[i].value === 'minor_athlete');
-            }
+    if (age !== null && age < 18) {
+        // 未成年人：强制使用监护人邮箱且锁定不可更改
+        emailInput.value = guardianEmail || "";
+        emailInput.disabled = true;
+        typeSelect.value = "minor_athlete";
+        if (consentSection) consentSection.style.display = "block";
+        // 针对未成年人开启必填校验
+        document.getElementById("minorAgreeCheckbox")?.setAttribute('required', '');
+        document.getElementById("minorGuardianSignature")?.setAttribute('required', '');
+
+        if (sigLabel) sigLabel.innerText = "Guardian Electronic Signature (Signing on behalf of minor)";
+        document.getElementById("registerSignature")?.setAttribute('required', '');
+    } else if (age !== null) {
+        // 成年人：允许填写独立邮箱（如果之前自动填入的是监护人邮箱，则清空以便输入）
+        if (emailInput.value === guardianEmail) {
+            emailInput.value = "";
         }
+        emailInput.disabled = false;
+        if (typeSelect.value === "minor_athlete") {
+            typeSelect.value = "adult_athlete";
+        }
+        if (consentSection) consentSection.style.display = "none";
+        // 非未成年人移除必填校验
+        document.getElementById("minorAgreeCheckbox")?.removeAttribute('required');
+        document.getElementById("minorGuardianSignature")?.removeAttribute('required');
+
+        if (sigLabel) sigLabel.innerText = "New Member Electronic Signature (Type your Full Name)";
+        if (isAddMode) document.getElementById("registerSignature")?.setAttribute('required', '');
     }
-
-    // 2. 根据最终选择的类型处理签名文字和监护人区块
-    const selectedType = memberTypeSelect.value;
-    const isMinorMode = (selectedType === 'minor_athlete' && age !== null && age < 18);
-
-    if (isMinorMode) {
-        consentSection.style.display = "block";
-        document.getElementById("minorAgreeCheckbox").setAttribute('required', '');
-        document.getElementById("minorGuardianSignature").setAttribute('required', '');
-        if (signatureLabel) signatureLabel.innerText = "Guardian Electronic Signature (Type your Full Name)";
-    } else {
-        consentSection.style.display = "none";
-        document.getElementById("minorAgreeCheckbox").removeAttribute('required');
-        document.getElementById("minorGuardianSignature").removeAttribute('required');
-        if (signatureLabel) signatureLabel.innerText = "New Member Electronic Signature (Type your Full Name)";
-    }
-}
-
-function calculateAge(year, month, day) {
-    if (!year || !month || !day) return null;
-    const today = new Date();
-    const birthDate = new Date(year, month - 1, day);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-    return age;
 }
 
 // 自动填充年月下拉框（与 signup.html 逻辑一致）
@@ -130,17 +116,11 @@ function populateBirthDateDropdowns() {
     });
 
     const currentYear = new Date().getFullYear();
-    for (let y = 2000; y >= 1940; y--) {
+    for (let y = currentYear; y >= 1940; y--) {
         let opt = document.createElement("option");
         opt.value = y;
         opt.textContent = y;
         yearSelect.appendChild(opt);
-    }
-    for (let y = 2001; y <= currentYear; y++) {
-        let opt = document.createElement("option");
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.insertBefore(opt, yearSelect.children[1]);
     }
 
     for (let d = 1; d <= 31; d++) {
@@ -151,57 +131,120 @@ function populateBirthDateDropdowns() {
     }
 }
 
+// 计算年龄助手函数
+function calculateAge(year, month, day) {
+    if (!year || !month || !day) return null;
+    const today = new Date();
+    const birthDate = new Date(year, month - 1, day);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
 // 加载用户资料
 async function loadUserProfile(uid) {
     populateBirthDateDropdowns();
     try {
-        const { data, error } = await supabase
+        const { data: profile, error } = await window.supabase
             .from('profiles')
             .select('*')
             .eq('id', uid)
-            .is('deleted_at', null)
             .single();
 
         if (error) throw error;
-
-        document.getElementById("firstName").value = data.first_name || "";
-        document.getElementById("lastName").value = data.last_name || "";
-        document.getElementById("email").value = data.email || "";
-        
-        if (data.date_of_birth) {
-            const dobParts = data.date_of_birth.split('-');
-            document.getElementById("birthYear").value = parseInt(dobParts[0]);
-            document.getElementById("birthMonth").value = parseInt(dobParts[1]);
-            document.getElementById("birthDay").value = parseInt(dobParts[2]);
+        if (!profile) {
+            showNotification("User profile not found.", "error");
+            return;
         }
+        originalProfile = profile; // 记录原始值
+
+        // 填充基本字段
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val || "";
+        };
+
+        setVal("firstName", profile.first_name);
+        setVal("lastName", profile.last_name);
+        setVal("email", profile.email);
+
+        let displayType = profile.user_type;
+        const consentSection = document.getElementById("minorGuardianConsentSection");
         
-        document.getElementById("memberType").value = data.user_type || "";
-        document.getElementById("memberType").disabled = true; // 编辑模式下禁止更改角色
-        document.getElementById("phone").value = data.phone || "";
-        document.getElementById("school_name").value = data.school_name || "";
-        document.getElementById("medical_conditions").value = data.medical_conditions || "";
+        if (profile.date_of_birth) {
+            const [y, m, d] = profile.date_of_birth.split('-');
+            const year = parseInt(y);
+            const month = parseInt(m);
+            const day = parseInt(d);
+            setVal("birthYear", year);
+            setVal("birthMonth", month);
+            setVal("birthDay", day);
 
-        // 权限检查：确保成年运动员（非监护人/非管理员）查看他人资料时为只读
-        const { data: { session } } = await supabase.auth.getSession();
-        const isOwnProfile = (uid === session?.user?.id);
-        const isGuardian = session?.user?.user_metadata?.user_type === 'guardian';
+            // 核心改进：根据年龄动态判定身份
+            const age = calculateAge(year, month, day);
+            if (age !== null && age < 18) {
+                displayType = 'minor_athlete';
+                if (consentSection) consentSection.style.display = "block";
 
-        if (!isOwnProfile && !isGuardian) {
-            console.log("Viewing family profile in read-only mode...");
+                // 加载资料时，若是未成年人则确保必填校验开启
+                document.getElementById("minorAgreeCheckbox")?.setAttribute('required', '');
+                document.getElementById("minorGuardianSignature")?.setAttribute('required', '');
+                
+                // 补签逻辑：如果数据库中已有签署记录，在 UI 上反映出来
+                if (profile.guardian_consent_at) {
+                    const cb = document.getElementById("minorAgreeCheckbox");
+                    if (cb) cb.checked = true;
+                    
+                    const sig = document.getElementById("minorGuardianSignature");
+                    if (sig) sig.value = profile.guardian_signature_name || "";
+
+                    const gEmail = document.getElementById("minorGuardianEmail");
+                    if (gEmail) gEmail.value = profile.guardian_email || "";
+
+                    const gPhone = document.getElementById("minorGuardianPhone");
+                    if (gPhone) gPhone.value = profile.guardian_phone || "";
+                }
+            } else if (displayType === 'participant') {
+                // 兼容逻辑：将注册时的 'participant' 映射到 Profile 页的 'adult_athlete'
+                displayType = 'adult_athlete';
+            }
+        }
+
+        // 处理 Membership Type 显示
+        const typeSelect = document.getElementById("memberType");
+        if (typeSelect) {
+            const exists = Array.from(typeSelect.options).some(opt => opt.value === displayType);
             
-            // 1. 禁用所有输入框、下拉框和文本域
-            const form = document.querySelector('form');
-            const elements = form.querySelectorAll('input, select, textarea');
-            elements.forEach(el => el.disabled = true);
-
-            // 2. 隐藏保存按钮
-            const saveBtn = document.querySelector(".primary.btn");
-            if (saveBtn) saveBtn.style.display = "none";
-
-            // 3. 修改标题文案以示区分
-            const header = document.querySelector('section > h3');
-            if (header) header.innerText = "View Profile";
+            if (exists) {
+                typeSelect.value = displayType;
+            } else if (displayType) {
+                const readableLabel = displayType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const opt = new Option(readableLabel, displayType);
+                typeSelect.add(opt);
+                typeSelect.value = displayType;
+            }
+            typeSelect.disabled = true; 
         }
+
+        // --- 核心重构：锁死高敏感字段（非添加模式下） ---
+        const criticalFields = ["firstName", "lastName", "birthYear", "birthMonth", "birthDay", "email"];
+        criticalFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = true;
+        });
+
+        // 显示管理员修正提示
+        const adminNotice = document.getElementById("adminAmendmentNotice");
+        if (adminNotice) adminNotice.style.display = "block";
+
+        setVal("school_name", profile.school_name);
+        setVal("phone", profile.phone);
+        setVal("medical_conditions", profile.medical_conditions);
+
+        console.log("Profile loaded:", profile);
 
     } catch (error) {
         console.error("Error loading profile:", error);
@@ -211,196 +254,138 @@ async function loadUserProfile(uid) {
 
 // 保存资料
 async function saveProfile() {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    if (!session?.user) return;
+
     const saveBtn = document.querySelector(".primary.btn");
     const form = saveBtn ? saveBtn.closest('form') : null;
 
-    // 1. 触发浏览器原生验证并应用 'was-validated' 样式（标红文本框）
+    // 触发浏览器原生验证
     if (form && !form.checkValidity()) {
         form.classList.add('was-validated');
         form.reportValidity(); // 显示气泡提示
         return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const isAddMode = urlParams.get('mode') === 'add';
-    const targetUid = urlParams.get('id') || session.user.id;
-
     const firstName = document.getElementById("firstName").value;
     const lastName = document.getElementById("lastName").value;
-    const birthYear = document.getElementById("birthYear").value;
-    const birthMonth = document.getElementById("birthMonth").value;
-    const birthDay = document.getElementById("birthDay").value;
-    const dob = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
+    const bYear = document.getElementById("birthYear").value;
+    const bMonth = document.getElementById("birthMonth").value;
+    const bDay = document.getElementById("birthDay").value;
+ 
+    // --- 法律合规性校验 (仅在添加模式下) ---
+    const age = calculateAge(bYear, bMonth, bDay);
+    const regSig = document.getElementById("registerSignature")?.value.trim();
 
-    // 法律协议数据（仅在添加模式下校验）
-    let signatureName = "";
-    let agreements = [];
     if (isAddMode) {
-        const memberType = document.getElementById("memberType").value;
-        const age = calculateAge(birthYear, birthMonth, birthDay);
-        const isMinor = (memberType === 'minor_athlete' && age !== null && age < 18);
-        const guardianName = `${session.user.user_metadata.first_name} ${session.user.user_metadata.last_name}`.trim();
-        const memberName = `${firstName} ${lastName}`.trim();
+        if (age !== null && age < 18) {
+            // 未成年人校验：3个勾选，2个签名
+            const consentCheckbox = document.getElementById("minorAgreeCheckbox")?.checked;
+            const integrityCheckbox = document.getElementById("guardianIntegrityConfirm")?.checked;
+            const guardSig = document.getElementById("minorGuardianSignature")?.value.trim();
 
-        signatureName = document.getElementById("registerSignature").value.trim();
-        if (!signatureName) {
-            showNotification("Please provide an electronic signature.", "error");
-            return;
-        }
-
-        if (isMinor) {
-            // 校验主签名（监护人签署）
-            if (signatureName !== guardianName) {
-                showNotification(`Signature must match "${guardianName}".`, "error");
+            // 1. 校验所有法律勾选
+            if (!agreeGeneral || !agreeWaiver || !consentCheckbox || !integrityCheckbox) {
+                showNotification("Please accept all legal agreements and the guardian confirmation to proceed.", "error");
                 return;
             }
 
-            // 额外验证未成年人监护人同意区块
-            const minorSignature = document.getElementById("minorGuardianSignature").value.trim();
-            if (!document.getElementById("minorAgreeCheckbox").checked || minorSignature !== guardianName) {
-                showNotification("Please complete the Guardian Consent section.", "error");
+            // 2. 校验2个签名（必须都匹配监护人姓名）
+            if (guardSig !== guardianName || regSig !== guardianName) {
+                showNotification(`Both signatures must match your name (${guardianName}) exactly for a minor.`, "error");
                 return;
             }
         } else {
-            // 成年人校验：签名必须匹配被添加人的姓名
-            if (signatureName !== memberName) {
-                showNotification(`Signature must match "${memberName}".`, "error");
+            // 成年人校验：2个勾选，1个签名
+            if (!agreeGeneral || !agreeWaiver) {
+                showNotification("Please accept the Membership Agreement and Liability Waiver.", "error");
+                return;
+            }
+
+            const memberFullName = `${firstName} ${lastName}`.trim();
+            if (regSig !== memberFullName) {
+                showNotification(`Signature must match the member's name (${memberFullName}) exactly.`, "error");
+                document.getElementById("registerSignature").focus();
                 return;
             }
         }
+    }
+    // --- 校验结束 ---
 
-        if (document.getElementById("registerAgreeGeneral").checked) agreements.push("general_agreement");
-        if (document.getElementById("registerAgreeWaiver").checked) agreements.push("liability_waiver");
-        agreements.push("guardian_consent"); // 监护人代加默认为已签署监护人同意
+    const dob = `${bYear}-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}`;
+
+    const profileData = {
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: dob,
+        school_name: document.getElementById("school_name").value,
+        phone: document.getElementById("phone").value,
+        medical_conditions: document.getElementById("medical_conditions").value
+    };
+    
+    // --- 数据组装：签名和同意书 ---
+    if (age !== null) {
+        if (age < 18) {
+            const consentCheckbox = document.getElementById("minorAgreeCheckbox")?.checked;
+            if (consentCheckbox) { 
+                profileData.guardian_consent_at = new Date().toISOString();
+                profileData.guardian_signature_name = document.getElementById("minorGuardianSignature")?.value;
+                profileData.guardian_email = document.getElementById("minorGuardianEmail")?.value;
+                profileData.guardian_phone = document.getElementById("minorGuardianPhone")?.value;
+            }
+            if (isAddMode) profileData.member_signature_name = regSig;
+            profileData.is_confirmed = true; 
+        } else {
+            if (isAddMode) {
+                profileData.member_signature_name = regSig;
+                profileData.is_confirmed = true;
+            }
+            // 非添加模式下，不再强制更新 member_signature_name，因为姓名已锁死
+        }
     }
 
-    const spinner = document.getElementById("saveSpinner");
-
-    // 开始加载状态
-    if (saveBtn) saveBtn.disabled = true;
-    if (spinner) spinner.classList.remove("hidden");
-    const originalBtnValue = saveBtn ? saveBtn.value : "";
-    if (saveBtn) saveBtn.value = isAddMode ? "Adding..." : "Saving...";
-
     try {
-        let profileData = {
-                first_name: firstName,
-                last_name: lastName,
-                date_of_birth: dob,
-                phone: document.getElementById("phone").value,
-                school_name: document.getElementById("school_name").value,
-                medical_conditions: document.getElementById("medical_conditions").value
-        };
-
         let result;
+
         if (isAddMode) {
-            // --- 新增模式：允许设置 email 和 user_type ---
-            profileData.email = document.getElementById("email").value;
-            
-            const selectedType = document.getElementById("memberType").value;
-            profileData.user_type = selectedType || 'participant';
-            
-            // 检查邮箱是否已经属于一个独立注册的会员
-            const { data: existingUser } = await supabase
-                .from('profiles')
-                .select('id, family_id')
-                .eq('email', profileData.email)
-                .maybeSingle();
-
-            if (existingUser && existingUser.id.length > 30) { // 简单判断是否是真正的 UUID (Auth User)
-                // 发起邀请而不是直接创建
-                await supabase.from('family_invitations').insert([{
-                    inviter_id: session.user.id,
-                    invitee_email: profileData.email,
-                    family_id: familyId
-                }]);
-                showNotification("This email already has an account. Invitation sent to join your family.", "info");
-                setTimeout(() => {
-                    window.location.href = "dashboard.html";
-                }, 2000);
-                return;
-            }
-
-            // 原有的创建逻辑...
-            let familyId = urlParams.get('family_id');
-            if (!familyId || familyId === 'null') {
-                familyId = session.user.id;
-            }
-
+            // 执行新增逻辑
             profileData.id = crypto.randomUUID();
-            profileData.family_id = familyId;
-            profileData.added_by_id = session.user.id; // 记录是由谁添加的
-            
-            result = await supabase.from('profiles').insert([profileData]);
+            profileData.email = document.getElementById("email").value;
+            profileData.user_type = document.getElementById("memberType").value;
+            profileData.family_id = familyIdToAdd;
+            profileData.added_by_id = session.user.id;
 
-            // 自愈逻辑：如果监护人使用的是自己的 ID 作为家组标识，确保监护人自己的 profile.family_id 也被同步更新
-            if (!result.error && familyId === session.user.id) {
-                await supabase.from('profiles')
-                    .update({ family_id: session.user.id })
-                    .eq('id', session.user.id)
-                    .is('family_id', null);
-            }
-
-            // --- 核心：保存法律协议证据 ---
-            if (!result.error) {
-                const userAgent = navigator.userAgent;
-                // 获取 IP 并保存协议记录
-                const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => ({json: () => ({ip: "Unknown"})}));
-                const ipData = await ipRes.json();
-
-                const agreementRecords = agreements.map(type => ({
-                    profile_id: profileData.id,
-                    signer_id: session.user.id, // 签署人是当前登录的监护人
-                    agreement_type: type,
-                    is_accepted: true,
-                    signature_name: signatureName,
-                    ip_address: ipData.ip,
-                    user_agent: userAgent
-                }));
-
-                await supabase.from('legal_agreements').insert(agreementRecords);
-            }
+            result = await window.supabase.from('profiles').insert([profileData]);
         } else {
-            // --- 更新模式：绝对不包含 family_id 字段，防止意外覆盖 ---
-            result = await supabase.from('profiles').update(profileData).eq('id', targetUid);
+            // 执行更新逻辑
+            result = await window.supabase
+                .from('profiles')
+                .update(profileData)
+                .eq('id', currentProfileUid);
         }
 
-        if (result.error) throw result.error;
+        const { error } = result;
+        if (error) throw error;
+
+        showNotification(isAddMode ? "Family member added successfully!" : "Profile updated successfully!");
 
         if (isAddMode) {
-            const memberType = document.getElementById("memberType").value;
-            const msg = (memberType !== 'minor_athlete') 
-                ? "Member profile created! Please ask them to Sign Up on the website using this same email to activate their login."
-                : "Minor athlete added successfully to your family.";
-            showNotification(msg, "success");
-        } else {
-            showNotification("Profile updated successfully!", "success");
+            setTimeout(() => window.location.href = "dashboard.html", 1500);
         }
-        
-        // 增加 2 秒延迟再跳转，确保用户能看到 Toast 提醒内容
-        setTimeout(() => {
-            window.location.href = "dashboard.html";
-        }, 2000);
+
 
     } catch (error) {
         console.error("Error saving profile:", error);
-        showNotification(error.message || "Failed to save profile.", "error");
-        // 失败时恢复按钮状态
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.value = originalBtnValue;
-        }
-        if (spinner) spinner.classList.add("hidden");
+        showNotification("Failed to save profile: " + error.message, "error");
     }
 }
 
 // 绑定按钮事件
-window.addEventListener("load", () => {
-    const saveBtn = document.querySelector(".primary.btn"); // 使用更具体的 primary 类
+document.addEventListener("DOMContentLoaded", () => {
+    const saveBtn = document.querySelector(".primary.btn");
     const cancelBtn = document.getElementById("cancelBtn");
+    const copyGuardianBtn = document.getElementById("copyCurrentGuardianNameBtn");
+    const profileCopyNameBtn = document.getElementById("profileCopyNameBtn");
 
     if (saveBtn) {
         saveBtn.addEventListener("click", (e) => {
@@ -409,56 +394,34 @@ window.addEventListener("load", () => {
         });
     }
 
-    // 复制姓名到主签名框（Agreements Section）
-    document.getElementById("profileCopyNameBtn")?.addEventListener("click", async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            const memberType = document.getElementById("memberType").value;
-            const year = document.getElementById("birthYear").value;
-            const month = document.getElementById("birthMonth").value;
-            const day = document.getElementById("birthDay").value;
-            const age = calculateAge(year, month, day);
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            window.location.href = "dashboard.html";
+        });
+    }
+
+    // 复制监护人姓名按钮
+    if (copyGuardianBtn) {
+        copyGuardianBtn.addEventListener("click", () => {
+            if (guardianName) document.getElementById("minorGuardianSignature").value = guardianName;
+        });
+    }
+
+    // 协议区域复制姓名按钮 (根据模式和年龄自动判定)
+    if (profileCopyNameBtn) {
+        profileCopyNameBtn.addEventListener("click", () => {
+            const age = calculateAge(document.getElementById("birthYear").value, document.getElementById("birthMonth").value, document.getElementById("birthDay").value);
             
-            const isMinor = (memberType === 'minor_athlete' && age !== null && age < 18);
-            
-            if (isMinor) {
-                // 未成年：复制监护人姓名
-                const name = `${session.user.user_metadata.first_name} ${session.user.user_metadata.last_name}`;
-                document.getElementById("registerSignature").value = name.trim();
+            if (isAddMode && age !== null && age < 18) {
+                // 添加未成年人模式：复制当前监护人姓名（代签）
+                document.getElementById("registerSignature").value = guardianName || "";
             } else {
-                // 成年：复制表单中填写的成员姓名
+                // 添加成年人或编辑模式：复制本页输入框中的姓名
                 const first = document.getElementById("firstName").value;
                 const last = document.getElementById("lastName").value;
                 document.getElementById("registerSignature").value = `${first} ${last}`.trim();
             }
-        }
-    });
-
-    // 复制监护人姓名到未成年人授权签名框
-    document.getElementById("copyCurrentGuardianNameBtn")?.addEventListener("click", async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            const name = `${session.user.user_metadata.first_name} ${session.user.user_metadata.last_name}`;
-            document.getElementById("minorGuardianSignature").value = name.trim();
-        }
-    });
-
-    // “使用我的邮箱”按钮逻辑
-    document.getElementById("useMyEmailBtn")?.addEventListener("click", async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            document.getElementById("email").value = session.user.email;
-        }
-    });
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const confirmed = await showConfirm("Discard Changes", "Are you sure you want to cancel? Any unsaved changes will be lost.");
-            if (confirmed) {
-                window.location.href = "dashboard.html";
-            }
         });
     }
-
 });
