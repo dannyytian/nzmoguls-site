@@ -1,9 +1,10 @@
 // assets/js/supabase-init.js
 
 // 占位符：由 GitHub Actions 在部署时自动替换成真实的值
-const SUPABASE_URL = '{{SUPABASE_URL}}';
-const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
-
+// const SUPABASE_URL = '{{SUPABASE_URL}}';
+// const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
+const SUPABASE_URL = 'https://zgjtpgnkxiaaxicezwte.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_E8GkM8xtAT03-SW3Y87tnQ_iwDltrcb';
 // 初始化全局 supabase 客户端，并配置 Auth 持久化
 window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

@@ -58,9 +58,7 @@
 			<div class="inner">
 				<header class="major">
 					<h2>About Us</h2>
-					<p>NZ Moguls Club is dedicated to supporting young athletes in mogul skiing across New Zealand.<br />
-					We provide coaching, training programs, and access to national competitions, helping skiers<br />
-					develop skills, confidence, and passion for the sport.</p>
+					<p>NZ Moguls Club is dedicated to supporting athletes of all ages and abilities in mogul skiing across New Zealand. We provide comprehensive coaching, tailored training programs, and pathways to national competitions—helping skiers develop skills, confidence, and a lifelong passion for the sport.</p>
 				</header>
 				<ul class="actions special">
 					<li><a href="about.html" class="button">Learn More</a></li>
@@ -119,10 +117,31 @@
 					<h2>Gallery Preview</h2>
 				</header>
 				<div class="box alt">
-					<div class="row gtr-50 gtr-uniform">
-						<div class="col-4"><span class="image fit"><img src="gallery/pic01.jpg" alt="Moguls 1" /></span></div>
-						<div class="col-4"><span class="image fit"><img src="gallery/pic02.jpg" alt="Moguls 2" /></span></div>
-						<div class="col-4"><span class="image fit"><img src="gallery/pic03.jpg" alt="Moguls 3" /></span></div>
+					<div class="row gtr-50 gtr-uniform" id="gallery-grid">
+						<div class="col-4">
+							<span class="image fit">
+								<picture>
+									<source srcset="gallery/thumbs/pic01.webp" type="image/webp">
+									<img src="gallery/thumbs/pic01.jpg" data-full="gallery/pic01.webp" alt="Moguls 1" style="cursor: pointer;" />
+								</picture>
+							</span>
+						</div>
+						<div class="col-4">
+							<span class="image fit">
+								<picture>
+									<source srcset="gallery/thumbs/pic02.webp" type="image/webp">
+									<img src="gallery/thumbs/pic02.jpg" data-full="gallery/pic02.webp" alt="Moguls 2" style="cursor: pointer;" />
+								</picture>
+							</span>
+						</div>
+						<div class="col-4">
+							<span class="image fit">
+								<picture>
+									<source srcset="gallery/thumbs/pic03.webp" type="image/webp">
+									<img src="gallery/thumbs/pic03.jpg" data-full="gallery/pic03.webp" alt="Moguls 3" style="cursor: pointer;" />
+								</picture>
+							</span>
+						</div>
 					</div>
 				</div>
 				<ul class="actions special">
@@ -163,5 +182,6 @@
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="assets/js/supabase-init.js"></script>
 	<script src="assets/js/auth.js"></script>
+	<script src="assets/js/gallery-handler.js"></script>
 </body>
 </html>
