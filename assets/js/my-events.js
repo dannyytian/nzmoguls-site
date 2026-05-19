@@ -22,7 +22,7 @@ async function loadMyEvents(uid) {
                 id,
                 status,
                 events (id, title, event_date, location, event_type),
-                profiles (first_name, last_name)
+                participant_profile:profiles!profile_id (first_name, last_name)
             `)
             .or(`profile_id.eq.${uid},guardian_id.eq.${uid}`);
 
@@ -35,11 +35,12 @@ async function loadMyEvents(uid) {
         let competitionCount = 0;
 
         regs.forEach(reg => {
-            if (reg.status === 'Cancelled') return;
+            // 统一使用小写判断，过滤掉已取消的报名
+            const status = (reg.status || "").toLowerCase();
+            if (status === 'cancelled') return;
 
             const event = reg.events;
-            const participant = reg.profiles;
-            const statusColor = getStatusColor(reg.status);
+            const participant = reg.participant_profile; // 使用新的别名
 
             // 日期对比逻辑
             const eventDate = new Date(event.event_date);
@@ -55,7 +56,7 @@ async function loadMyEvents(uid) {
                         <p><strong>Participant:</strong> ${participant.first_name} ${participant.last_name}<br />
                         <strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString()}<br />
                         <strong>Location:</strong> ${event.location}<br />
-                        <strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${reg.status}</span></p>
+                        <strong>Status:</strong> <span style="color: ${getStatusColor(status)}; font-weight: bold; text-transform: capitalize;">${status}</span></p>
                         ${!isExpired ? `
                             <ul class="actions stacked">
                                 <li><button class="button small" onclick="handleCancelRegistration('${reg.id}')">Cancel Registration</button></li>
@@ -84,10 +85,11 @@ async function loadMyEvents(uid) {
 }
 
 function getStatusColor(status) {
-    switch (status) {
+    // 内部逻辑统一按小写处理
+    switch (status?.toLowerCase()) {
         case 'paid': return 'green';
         case 'pending': return '#e6b800';
-        case 'Cancelled': return '#b30000';
+        case 'cancelled': return '#b30000';
         default: return 'inherit';
     }
 }
@@ -102,16 +104,24 @@ window.handleCancelRegistration = async function(regId) {
     if (confirmed) {
         const { error } = await supabase
             .from('registrations')
-            .update({ status: 'Cancelled' })
+            .update({ status: 'cancelled' }) // 统一改为小写
             .eq('id', regId);
             
         if (error) {
             showNotification("Failed to cancel: " + error.message, "error");
         } else {
             showNotification("Registration cancelled successfully.", "success");
-            // 重新获取当前 UID 并加载
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) loadMyEvents(session.user.id);
+            
+            // 查找当前页面所属的 UID (从 URL 或当前会话)
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUid = urlParams.get('id');
+            
+            if (targetUid) {
+                loadMyEvents(targetUid);
+            } else {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) loadMyEvents(session.user.id);
+            }
         }
     }
 };
@@ -119,12 +129,16 @@ window.handleCancelRegistration = async function(regId) {
 // 监听登录状态
 supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
-        loadMyEvents(session.user.id);
+        // 修正：优先使用 URL 中的 id 参数（查看家人活动），否则使用当前用户 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUid = urlParams.get('id') || session.user.id;
+        
+        loadMyEvents(targetUid);
 
         // 绑定切换开关事件，一旦变化就重新加载列表
         const toggle = document.getElementById("showExpiredToggle");
         if (toggle && !toggle.dataset.listenerAttached) {
-            toggle.addEventListener("change", () => loadMyEvents(session.user.id));
+            toggle.addEventListener("change", () => loadMyEvents(targetUid));
             toggle.dataset.listenerAttached = "true";
         }
     }

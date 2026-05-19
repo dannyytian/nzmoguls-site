@@ -73,6 +73,7 @@ function updateEmailAndTypeBasedOnAge() {
         // 针对未成年人开启必填校验
         document.getElementById("minorAgreeCheckbox")?.setAttribute('required', '');
         document.getElementById("minorGuardianSignature")?.setAttribute('required', '');
+        document.getElementById("guardianIntegrityConfirm")?.setAttribute('required', '');
 
         if (sigLabel) sigLabel.innerText = "Guardian Electronic Signature (Signing on behalf of minor)";
         document.getElementById("registerSignature")?.setAttribute('required', '');
@@ -89,6 +90,7 @@ function updateEmailAndTypeBasedOnAge() {
         // 非未成年人移除必填校验
         document.getElementById("minorAgreeCheckbox")?.removeAttribute('required');
         document.getElementById("minorGuardianSignature")?.removeAttribute('required');
+        document.getElementById("guardianIntegrityConfirm")?.removeAttribute('required');
 
         if (sigLabel) sigLabel.innerText = "New Member Electronic Signature (Type your Full Name)";
         if (isAddMode) document.getElementById("registerSignature")?.setAttribute('required', '');
@@ -170,6 +172,7 @@ async function loadUserProfile(uid) {
         setVal("firstName", profile.first_name);
         setVal("lastName", profile.last_name);
         setVal("email", profile.email);
+        setVal("gender", profile.gender);
 
         let displayType = profile.user_type;
         const consentSection = document.getElementById("minorGuardianConsentSection");
@@ -192,6 +195,7 @@ async function loadUserProfile(uid) {
                 // 加载资料时，若是未成年人则确保必填校验开启
                 document.getElementById("minorAgreeCheckbox")?.setAttribute('required', '');
                 document.getElementById("minorGuardianSignature")?.setAttribute('required', '');
+                document.getElementById("guardianIntegrityConfirm")?.setAttribute('required', '');
                 
                 // 补签逻辑：如果数据库中已有签署记录，在 UI 上反映出来
                 if (profile.guardian_consent_at) {
@@ -230,7 +234,7 @@ async function loadUserProfile(uid) {
         }
 
         // --- 核心重构：锁死高敏感字段（非添加模式下） ---
-        const criticalFields = ["firstName", "lastName", "birthYear", "birthMonth", "birthDay", "email"];
+        const criticalFields = ["firstName", "lastName", "birthYear", "birthMonth", "birthDay", "email", "gender"];
         criticalFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.disabled = true;
@@ -272,6 +276,7 @@ async function saveProfile() {
     const bYear = document.getElementById("birthYear").value;
     const bMonth = document.getElementById("birthMonth").value;
     const bDay = document.getElementById("birthDay").value;
+    const gender = document.getElementById("gender").value;
  
     // --- 法律合规性校验 (仅在添加模式下) ---
     const age = calculateAge(bYear, bMonth, bDay);
@@ -318,6 +323,7 @@ async function saveProfile() {
         first_name: firstName,
         last_name: lastName,
         date_of_birth: dob,
+        gender: gender,
         school_name: document.getElementById("school_name").value,
         phone: document.getElementById("phone").value,
         medical_conditions: document.getElementById("medical_conditions").value
@@ -354,6 +360,7 @@ async function saveProfile() {
             profileData.user_type = document.getElementById("memberType").value;
             profileData.family_id = familyIdToAdd;
             profileData.added_by_id = session.user.id;
+            profileData.status = 'active'; // 新添加的家庭成员默认设置为 active
 
             result = await window.supabase.from('profiles').insert([profileData]);
         } else {

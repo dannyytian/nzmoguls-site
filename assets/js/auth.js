@@ -77,7 +77,7 @@ async function handleLogin(email, password) {
 }
 
 // 注册
-async function handleRegister(email, password, firstName, lastName, userType, dob, agreements, signatureName, ipAddress, userAgent, isConfirmed) {
+async function handleRegister(email, password, firstName, lastName, userType, dob, gender, agreements, signatureName, ipAddress, userAgent, isConfirmed) {
     try {
         // 验证电子签名：确保输入的签名与填写的姓名完全一致（含空格处理）
         const fullName = `${firstName} ${lastName}`.trim();
@@ -99,11 +99,12 @@ async function handleRegister(email, password, firstName, lastName, userType, do
                     last_name: lastName,
                     user_type: userType,
                     date_of_birth: dob,
+                    gender: gender,
                     accepted_agreements: agreements,
                     member_signature_name: signatureName, // 对应 profiles 表的字段名
                     ip_address: ipAddress,
                     user_agent: userAgent,
-                    is_confirmed: isConfirmed
+                    is_confirmed: isConfirmed // 邮箱是否已确认或数据是否已确认
                 }
             }
         });
@@ -187,10 +188,6 @@ window.supabase.auth.onAuthStateChange((event, session) => {
                 authLink.innerText = "Log Out";
                 authLink.href = "#";
                 authLink.className = "button small fit logout-btn";
-                authLink.onclick = (e) => {
-                    e.preventDefault();
-                    handleLogout();
-                };
             }
             if (membershipLink) {
                 membershipLink.href = isMemberDir ? "dashboard.html" : "members/dashboard.html";
@@ -304,21 +301,36 @@ function initMembershipPage() {
     });
 
     if (loginBtn) {
-        loginBtn.addEventListener("click", () => {
+        loginBtn.addEventListener("click", async () => {
             const form = loginBtn.closest('form');
             if (form && !form.checkValidity()) {
                 form.classList.add('was-validated');
                 form.reportValidity();
                 return;
             }
+
+            // 禁用按钮并显示加载状态
+            loginBtn.disabled = true;
+            const originalText = loginBtn.value;
+            loginBtn.value = "Logging in...";
+
             const email = document.getElementById("loginEmail").value;
             const password = document.getElementById("loginPassword").value;
-            handleLogin(email, password);
+
+            try {
+                await handleLogin(email, password);
+            } finally {
+                // 如果没有跳转（比如登录失败），恢复按钮
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.value = originalText;
+                }
+            }
         });
     }
 
     if (registerBtn) {
-        registerBtn.addEventListener("click", () => {
+        registerBtn.addEventListener("click", async () => {
             const form = registerBtn.closest('form');
             
             // 触发浏览器原生验证并显示错误提示（气泡）
@@ -328,6 +340,11 @@ function initMembershipPage() {
                 return;
             }
 
+            // 防止重复点击：禁用按钮并显示加载动画文字
+            registerBtn.disabled = true;
+            const originalText = registerBtn.value;
+            registerBtn.value = "Registering...";
+
             const email = document.getElementById("registerEmail").value;
             const password = document.getElementById("registerPassword").value;
             const firstName = document.getElementById("registerFirstName").value;
@@ -336,6 +353,7 @@ function initMembershipPage() {
             const birthYear = document.getElementById("registerBirthYear").value;
             const birthMonth = document.getElementById("registerBirthMonth").value;
             const birthDay = document.getElementById("registerBirthDay").value;
+            const gender = document.getElementById("registerGender").value;
             const signatureName = document.getElementById("registerSignature").value;
 
             // 验证签名是否一致
@@ -343,6 +361,8 @@ function initMembershipPage() {
             if (signatureName !== fullName) {
                 showNotification("Signature must match your name exactly.", 'error');
                 document.getElementById("registerSignature").focus();
+                registerBtn.disabled = false;
+                registerBtn.value = originalText;
                 return;
             }
 
@@ -350,6 +370,8 @@ function initMembershipPage() {
             const age = calculateAge(birthYear, birthMonth, birthDay);
             if (age !== null && age < 18) {
                 showNotification("Minors cannot register directly. Please have a guardian register first.", 'error');
+                registerBtn.disabled = false;
+                registerBtn.value = originalText;
                 return;
             }
 
@@ -362,15 +384,25 @@ function initMembershipPage() {
             const userAgent = navigator.userAgent;
             const dob = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
 
-            // 获取 IP 地址 (使用外部 API)
-            fetch('https://api.ipify.org?format=json')
-                .then(res => res.json())
-                .then(data => {
-                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, data.ip, userAgent, isConfirmed);
-                })
-                .catch(() => {
-                    handleRegister(email, password, firstName, lastName, memberType, dob, agreements, signatureName, "Unknown", userAgent, isConfirmed);
-                });
+            try {
+                // 获取 IP 地址 (使用外部 API)
+                let ipAddress = "Unknown";
+                try {
+                    const res = await fetch('https://api.ipify.org?format=json');
+                    const data = await res.json();
+                    ipAddress = data.ip;
+                } catch (e) {
+                    console.warn("Could not fetch IP, proceeding with 'Unknown'");
+                }
+
+                // 调用注册逻辑并等待结果
+                await handleRegister(email, password, firstName, lastName, memberType, dob, gender, agreements, signatureName, ipAddress, userAgent, isConfirmed);
+                
+            } finally {
+                // 无论成功失败，恢复按钮状态（成功通常会跳转页面）
+                registerBtn.disabled = false;
+                registerBtn.value = originalText;
+            }
         });
     }
 }
