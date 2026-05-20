@@ -19,9 +19,10 @@ window.supabase.auth.onAuthStateChange(async (event, session) => {
 
     // 1. 模式判定与资料定位
     const urlParams = new URLSearchParams(window.location.search);
-    isAddMode = urlParams.get('add') === 'true';
-    familyIdToAdd = urlParams.get('familyId');
-    currentProfileUid = urlParams.get('uid') || session.user.id;
+    isAddMode = urlParams.get('add') === 'true' || urlParams.get('mode') === 'add';
+    familyIdToAdd = urlParams.get('familyId') || urlParams.get('family_id');
+    // 兼容 id 和 uid 两种参数名，最后回退到当前登录用户
+    currentProfileUid = urlParams.get('id') || urlParams.get('uid') || session.user.id;
 
     if (isAddMode) {
         // 添加成员模式：初始化 UI
@@ -68,7 +69,17 @@ function updateEmailAndTypeBasedOnAge() {
         // 未成年人：强制使用监护人邮箱且锁定不可更改
         emailInput.value = guardianEmail || "";
         emailInput.disabled = true;
+        
+        // 自动带入监护人邮箱到同意书部分并锁定
+        const minorGuardEmail = document.getElementById("minorGuardianEmail");
+        if (minorGuardEmail) {
+            minorGuardEmail.value = guardianEmail || "";
+            minorGuardEmail.disabled = true;
+        }
+
         typeSelect.value = "minor_athlete";
+        typeSelect.disabled = true;
+
         if (consentSection) consentSection.style.display = "block";
         // 针对未成年人开启必填校验
         document.getElementById("minorAgreeCheckbox")?.setAttribute('required', '');
@@ -83,9 +94,14 @@ function updateEmailAndTypeBasedOnAge() {
             emailInput.value = "";
         }
         emailInput.disabled = false;
-        if (typeSelect.value === "minor_athlete") {
-            typeSelect.value = "adult_athlete";
-        }
+
+        // 成年人模式：允许选择，但过滤掉“未成年运动员”选项
+        typeSelect.disabled = false;
+        Array.from(typeSelect.options).forEach(opt => {
+            opt.style.display = (opt.value === 'minor_athlete') ? 'none' : 'block';
+        });
+        if (typeSelect.value === "minor_athlete") typeSelect.value = "adult_athlete";
+
         if (consentSection) consentSection.style.display = "none";
         // 非未成年人移除必填校验
         document.getElementById("minorAgreeCheckbox")?.removeAttribute('required');
@@ -282,6 +298,10 @@ async function saveProfile() {
     const age = calculateAge(bYear, bMonth, bDay);
     const regSig = document.getElementById("registerSignature")?.value.trim();
 
+    // 修复 ReferenceError: 获取协议勾选状态
+    const agreeGeneral = document.getElementById("registerAgreeGeneral")?.checked;
+    const agreeWaiver = document.getElementById("registerAgreeWaiver")?.checked;
+
     if (isAddMode) {
         if (age !== null && age < 18) {
             // 未成年人校验：3个勾选，2个签名
@@ -318,61 +338,86 @@ async function saveProfile() {
     // --- 校验结束 ---
 
     const dob = `${bYear}-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}`;
-
-    const profileData = {
-        first_name: firstName,
-        last_name: lastName,
-        date_of_birth: dob,
-        gender: gender,
-        school_name: document.getElementById("school_name").value,
-        phone: document.getElementById("phone").value,
-        medical_conditions: document.getElementById("medical_conditions").value
-    };
-    
-    // --- 数据组装：签名和同意书 ---
-    if (age !== null) {
-        if (age < 18) {
-            const consentCheckbox = document.getElementById("minorAgreeCheckbox")?.checked;
-            if (consentCheckbox) { 
-                profileData.guardian_consent_at = new Date().toISOString();
-                profileData.guardian_signature_name = document.getElementById("minorGuardianSignature")?.value;
-                profileData.guardian_email = document.getElementById("minorGuardianEmail")?.value;
-                profileData.guardian_phone = document.getElementById("minorGuardianPhone")?.value;
-            }
-            if (isAddMode) profileData.member_signature_name = regSig;
-            profileData.is_confirmed = true; 
-        } else {
-            if (isAddMode) {
-                profileData.member_signature_name = regSig;
-                profileData.is_confirmed = true;
-            }
-            // 非添加模式下，不再强制更新 member_signature_name，因为姓名已锁死
-        }
-    }
+    let profileData = {};
 
     try {
-        let result;
-
         if (isAddMode) {
-            // 执行新增逻辑
-            profileData.id = crypto.randomUUID();
-            profileData.email = document.getElementById("email").value;
-            profileData.user_type = document.getElementById("memberType").value;
-            profileData.family_id = familyIdToAdd;
-            profileData.added_by_id = session.user.id;
-            profileData.status = 'active'; // 新添加的家庭成员默认设置为 active
+            // 添加模式：构建完整对象
+            profileData = {
+                first_name: firstName,
+                last_name: lastName,
+                date_of_birth: dob,
+                gender: gender,
+                school_name: document.getElementById("school_name").value.trim(),
+                phone: document.getElementById("phone").value.trim(),
+                medical_conditions: document.getElementById("medical_conditions").value.trim(),
+                id: crypto.randomUUID(),
+                email: document.getElementById("email").value.trim(),
+                user_type: document.getElementById("memberType").value,
+                family_id: familyIdToAdd,
+                added_by_id: session.user.id,
+                status: 'active',
+                is_confirmed: true
+            };
 
-            result = await window.supabase.from('profiles').insert([profileData]);
+            if (age !== null && age < 18) {
+                profileData.guardian_consent_at = new Date().toISOString();
+                profileData.guardian_name = document.getElementById("minorGuardianSignature")?.value.trim();
+                profileData.guardian_signature_name = document.getElementById("minorGuardianSignature")?.value.trim();
+                profileData.guardian_email = document.getElementById("minorGuardianEmail")?.value.trim();
+                profileData.guardian_phone = document.getElementById("minorGuardianPhone")?.value.trim();
+                profileData.member_signature_name = regSig;
+            } else {
+                profileData.member_signature_name = regSig;
+            }
+
+            const { error } = await window.supabase.from('profiles').insert([profileData]);
+            if (error) throw error;
+
         } else {
-            // 执行更新逻辑
-            result = await window.supabase
+            // 编辑模式：对比原始数据，只提取“脏”数据
+            const addIfChanged = (key, newVal) => {
+                const oldVal = originalProfile[key] === null ? "" : String(originalProfile[key]).trim();
+                const normalizedNew = newVal === null ? "" : String(newVal).trim();
+                if (normalizedNew !== oldVal) {
+                    profileData[key] = normalizedNew;
+                }
+            };
+
+            addIfChanged("first_name", firstName);
+            addIfChanged("last_name", lastName);
+            addIfChanged("date_of_birth", dob);
+            addIfChanged("gender", gender);
+            addIfChanged("school_name", document.getElementById("school_name").value);
+            addIfChanged("phone", document.getElementById("phone").value);
+            addIfChanged("medical_conditions", document.getElementById("medical_conditions").value);
+
+            // 处理监护人信息的更新（如果是未成年人且资料变动）
+            if (age !== null && age < 18) {
+                const newGSig = document.getElementById("minorGuardianSignature")?.value.trim();
+                const newGPhone = document.getElementById("minorGuardianPhone")?.value.trim();
+                
+                if (newGSig !== (originalProfile.guardian_signature_name || "")) {
+                    profileData.guardian_signature_name = newGSig;
+                    profileData.guardian_name = newGSig;
+                    profileData.guardian_consent_at = new Date().toISOString();
+                }
+                if (newGPhone !== (originalProfile.guardian_phone || "")) {
+                    profileData.guardian_phone = newGPhone;
+                }
+            }
+
+            if (Object.keys(profileData).length === 0) {
+                showNotification("No changes detected.", "info");
+                return;
+            }
+
+            const { error } = await window.supabase
                 .from('profiles')
                 .update(profileData)
                 .eq('id', currentProfileUid);
+            if (error) throw error;
         }
-
-        const { error } = result;
-        if (error) throw error;
 
         showNotification(isAddMode ? "Family member added successfully!" : "Profile updated successfully!");
 

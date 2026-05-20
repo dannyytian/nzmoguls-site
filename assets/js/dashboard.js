@@ -2,35 +2,55 @@
 // 负责加载并显示会员仪表盘的数据
 
 supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user) {
-        const user = session.user;
-        const memberNameEl = document.getElementById("memberName");
-        if (!memberNameEl) return;
+    console.log("DEBUG: Auth event triggered:", event, "Has Session:", !!session);
 
-        // Supabase Auth 元数据中获取姓名
-        const firstName = user.user_metadata?.first_name || "";
-        const lastName = user.user_metadata?.last_name || "";
-        const fullName = `${firstName} ${lastName}`.trim();
-        memberNameEl.innerText = fullName || "Member";
+    // 只要有会话且不是登出事件，就初始化/刷新 UI
+    if (session?.user && event !== 'SIGNED_OUT') {
+        try {
+            const user = session.user;
+            const memberNameEl = document.getElementById("memberName");
+            
+            // --- 阶段 A: 立即渲染 (使用 Auth 元数据) ---
+            const meta = user.user_metadata || {};
+            const fullName = `${meta.first_name || "Member"} ${meta.last_name || ""}`.trim();
+            const userType = meta.user_type || 'participant';
+            const familyId = meta.family_id || null;
+            if (memberNameEl) memberNameEl.innerText = fullName;
 
-        // 优化：初次显示逻辑基于元数据，防止 UI 闪烁
-        const userType = user.user_metadata?.user_type;
-        const familySection = document.getElementById("familySection");
-        
-        // 业务逻辑优化：
-        // 1. 监护人、成年运动员和管理员可以【查看】家庭区块
-        // 2. 但只有监护人和管理员可以【添加/删除】成员
-        const canManageFamily = ['guardian', 'adult_athlete'].includes(userType);
+            // 关键：立即根据元数据展示家庭管理区块，不等待数据库
+            const familySection = document.getElementById("familySection");
+            
+            if (userType === 'guardian') {
+                if (familySection) familySection.style.display = "block";
+                // 立即启动家庭成员加载（异步，不阻塞主流程）
+                loadFamilySection(user.id, { user_type: userType, family_id: familyId });
+            }
 
-        if (canManageFamily) {
-            if (familySection) familySection.style.display = "block";
-            loadFamilySection(user.id);
-        } else {
-            if (familySection) familySection.style.display = "none";
+            // --- 阶段 B: 异步校准 (后台静默执行) ---
+            // 即使这里 hang 住，由于上面的代码已经执行，UI 已经是可见的了
+            (async () => {
+                console.log("DEBUG: Step 2 - Calibration started in background...");
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('first_name, last_name, user_type, family_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                if (profile && profile.family_id !== familyId) {
+                    console.log("DEBUG: Step 3 - Data updated, re-loading family...");
+                    loadFamilySection(user.id, profile);
+                }
+            })();
+
+
+            checkPendingInvitations(user.email, user.id);
+
+        } catch (err) {
+            console.error("Dashboard initialization failed:", err);
+            // 即使核心逻辑报错，也尝试显示一个基础名称
+            const nameEl = document.getElementById("memberName");
+            if (nameEl) nameEl.innerText = "Member";
         }
-
-        // 检查是否有待处理的邀请
-        checkPendingInvitations(user.email, user.id);
     }
 });
 
@@ -81,68 +101,48 @@ async function handleAcceptInvitation(invite, uid) {
 /**
  * 加载监护人名下的家庭成员
  */
-async function loadFamilySection(uid) {
+async function loadFamilySection(uid, context) {
     const familySection = document.getElementById("familySection");
     const familyList = document.getElementById("familyList");
+    const addBtn = document.getElementById("addMemberBtn");
 
     if (!familySection || !familyList) return;
 
     try {
-        // 1. 获取当前用户的 family_id 和类型
-        const { data: profile, error: pError } = await supabase
-            .from('profiles')
-            .select('id, family_id, user_type')
-            .eq('id', uid)
-            .single();
-
-        // 获取当前 Session 用于二次验证管理员身份
-        const { data: { session } } = await supabase.auth.getSession();
-        const isAllowedType = ['guardian', 'adult_athlete', 'participant'].includes(profile?.user_type);
-
-        if (pError || !profile || !isAllowedType) {
-            familySection.style.display = "none";
-            return;
-        }
-
-        // 权限判断：只有监护人和管理员能看到“Add Participant”按钮
-        const addBtn = document.getElementById("addMemberBtn");
-        const canEditFamily = profile.user_type === 'guardian';
+        // 权限判断：严格遵循家长角色才能看到添加按钮
+        const canEditFamily = context?.user_type === 'guardian';
         
         if (addBtn) {
             if (canEditFamily) {
-                const fid = profile.family_id || profile.id;
-                addBtn.href = `profile.html?mode=add&family_id=${fid}`;
-                addBtn.style.display = "inline-block";
+                const fid = context?.family_id || uid; // 如果还没有 family_id，用自己的 UID 作为初始 ID
+            addBtn.href = `profile.html?add=true&familyId=${fid}`;
+            addBtn.style.display = "inline-block";
             } else {
-                // 成年运动员虽然能看到区块，但不能添加成员
-                addBtn.style.display = "none";
+            addBtn.style.display = "none";
             }
         }
 
-        if (!profile.family_id) {
+        if (!context || !context.family_id) {
             familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>No family members added yet.</p></div>";
             return;
         }
 
         familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>Loading family members...</p></div>";
 
-        // 2. 获取同一家庭下的其他成员
+        // 获取同一家庭下的其他成员
         const { data: members, error: mError } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, user_type, email')
-            .eq('family_id', profile.family_id)
+            .eq('family_id', context.family_id)
             .neq('id', uid) // 排除自己
             .is('deleted_at', null); // 仅加载未标记删除的成员
 
-        if (mError) throw mError;
-
-        familyList.innerHTML = "";
-
-        if (!members || members.length === 0) {
+        if (mError || !members || members.length === 0) {
             familyList.innerHTML = "<div class='col-12'><p style='padding-left: 1.5em; opacity: 0.6; font-style: italic;'>No family members added yet.</p></div>";
             return;
         }
 
+        familyList.innerHTML = "";
         // 3. 渲染列表
         members.forEach(member => {
             const col = document.createElement("div");
@@ -187,8 +187,13 @@ window.handleDeleteMember = async function(memberId) {
 
         showNotification("Member removed successfully.", "success");
         // 重新加载列表
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) loadFamilySection(session.user.id);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+            // 修复：重新获取 profile 以便作为 context 传入，防止按钮消失
+            const { data: profile } = await supabase.from('profiles')
+                .select('user_type, family_id').eq('id', currentSession.user.id).maybeSingle();
+            loadFamilySection(currentSession.user.id, profile || currentSession.user.user_metadata);
+        }
         
     } catch (err) {
         console.error("Delete failed:", err);
