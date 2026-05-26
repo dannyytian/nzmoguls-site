@@ -1,0 +1,19 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 国际标准时间 (UTC) 每 3 天的 0 点 0 分运行一次
+    # 对应的北京时间是每 3 天的早上 8 点
+    - cron: '0 0 */3 * *'
+  # 允许你在 GitHub 页面上手动点击按钮触发运行，方便测试
+  workflow_dispatch: 
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send API Request to Supabase
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
