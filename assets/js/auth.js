@@ -287,6 +287,22 @@ function initMembershipPage() {
     const loginBtn = document.getElementById("loginBtn");
     const registerBtn = document.getElementById("registerBtn");
 
+    // 强制大写转换：First Name, Last Name, Signature
+    ['registerFirstName', 'registerLastName', 'registerSignature'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', (e) => {
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                e.target.value = e.target.value.toUpperCase();
+                // 恢复光标位置，防止输入时跳动
+                if (start !== null) {
+                    e.target.setSelectionRange(start, end);
+                }
+            });
+        }
+    });
+
     // 监听出生日期变化
     ['registerBirthYear', 'registerBirthMonth', 'registerBirthDay'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', updateGuardianVisibility);
@@ -350,10 +366,10 @@ function initMembershipPage() {
             const firstName = document.getElementById("registerFirstName").value;
             const lastName = document.getElementById("registerLastName").value;
             const memberType = document.getElementById("registerMemberType").value;
-            const birthYear = document.getElementById("registerBirthYear").value;
-            const birthMonth = document.getElementById("registerBirthMonth").value;
-            const birthDay = document.getElementById("registerBirthDay").value;
-            const gender = document.getElementById("registerGender").value;
+            const birthYear = document.getElementById("registerBirthYear")?.value || "";
+            const birthMonth = document.getElementById("registerBirthMonth")?.value || "";
+            const birthDay = document.getElementById("registerBirthDay")?.value || "";
+            const gender = document.getElementById("registerGender")?.value || "";
             const signatureName = document.getElementById("registerSignature").value;
 
             // 验证签名是否一致
@@ -382,6 +398,14 @@ function initMembershipPage() {
             const isConfirmed = document.getElementById("registerAccuracyConfirm")?.checked || false;
 
             const userAgent = navigator.userAgent;
+            
+            // 确保日期合法，避免生成 2024-00-00 导致数据库 500 错误
+            if (!birthYear || !birthMonth || !birthDay) {
+                showNotification("Please select your full date of birth.", 'error');
+                registerBtn.disabled = false;
+                registerBtn.value = originalText;
+                return;
+            }
             const dob = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
 
             try {
