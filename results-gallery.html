@@ -52,23 +52,7 @@
 					<h3>Gallery</h3>
 					<div class="box alt">
 						<div class="row gtr-50 gtr-uniform" id="gallery-grid">
-							<div class="col-4">
-								<span class="image fit">
-									<picture>
-										<source srcset="gallery/thumbs/pic01.webp" type="image/webp">
-										<img src="gallery/thumbs/pic01.jpg" data-full="gallery/pic01.webp" alt="Moguls 1" style="cursor: pointer;" />
-									</picture>
-								</span>
-							</div>
-							<!-- 其他图片依此类推 -->
-							<div class="col-4">
-								<span class="image fit">
-									<picture>
-										<source srcset="gallery/thumbs/pic02.webp" type="image/webp">
-										<img src="gallery/thumbs/pic02.jpg" data-full="gallery/pic02.webp" alt="Moguls 2" style="cursor: pointer;" />
-									</picture>
-								</span>
-							</div>
+							<!-- Photos will be loaded here from Supabase -->
 						</div>
 					</div>
 					<ul class="actions special">
@@ -86,33 +70,11 @@
 									<th>Athlete</th>
 									<th>Category</th>
 									<th>Result</th>
+									<th>Date</th>
 								</tr>
 							</thead>
-							<tbody>
-								<tr>
-									<td>NZ Junior Moguls Series – Round 1</td>
-									<td>Alex Smith</td>
-									<td>U14 Boys</td>
-									<td>1st Place</td>
-								</tr>
-								<tr>
-									<td>NZ Junior Moguls Series – Round 1</td>
-									<td>Emily Johnson</td>
-									<td>U12 Girls</td>
-									<td>2nd Place</td>
-								</tr>
-								<tr>
-									<td>Winter Moguls Camp Challenge</td>
-									<td>Lucas Brown</td>
-									<td>Open</td>
-									<td>Top Score</td>
-								</tr>
-								<tr>
-									<td>Club Fun Race - June</td>
-									<td>Sarah Lee</td>
-									<td>Open Female</td>
-									<td>1st Place</td>
-								</tr>
+							<tbody id="results-table-body">
+								<!-- Results will be loaded here from Supabase -->
 							</tbody>
 						</table>
 					</div>

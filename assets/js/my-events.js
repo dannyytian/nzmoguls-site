@@ -1,145 +1,145 @@
 /**
  * my-events.js
- * 加载并显示当前登录会员及其家庭成员的活动报名信息（Supabase版）
+ * 加载并显示当前登录会员及其家庭成员的活动报名记录
  */
+(function() {
+    const fetchMyEvents = async () => {
+        const trainingContainer = document.getElementById('my-training-list');
+        const competitionContainer = document.getElementById('my-competition-list');
+        const showExpiredToggle = document.getElementById('showExpiredToggle');
+        
+        if (!trainingContainer || !competitionContainer) return;
 
-async function loadMyEvents(uid) {
-    const trainingContainer = document.getElementById("my-training-list");
-    const competitionContainer = document.getElementById("my-competition-list");
+        const showExpired = showExpiredToggle ? showExpiredToggle.checked : false;
+        const today = new Date().toISOString().split('T')[0];
 
-    if (!trainingContainer || !competitionContainer) return;
+        // 获取当前会话
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            window.location.href = "../membership.html";
+            return;
+        }
 
-    try {
-        // 获取当前时间
-        const now = new Date();
-        const showExpired = document.getElementById("showExpiredToggle")?.checked || false;
+        // 1. 获取账号关联的所有 Profile IDs (主账号 + 手动添加的家属)
+        const { data: profiles, error: pError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .or(`id.eq.${session.user.id},added_by_id.eq.${session.user.id}`);
 
-        // 1. 获取所有相关的报名记录
-        // 逻辑：如果是监护人，可以看到 guardian_id 是自己的，或者 profile_id 是自己的记录
-        const { data: regs, error } = await supabase
+        if (pError || !profiles) {
+            console.error('Error fetching profiles:', pError);
+            return;
+        }
+
+        const profileMap = Object.fromEntries(profiles.map(p => [p.id, `${p.first_name} ${p.last_name}`]));
+        
+        // 判定目标 ID：如果 URL 指定了 ID 且在我们的家属列表中，则只查那一个
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUid = urlParams.get('id');
+        const profileIds = (targetUid && profileMap[targetUid]) ? [targetUid] : profiles.map(p => p.id);
+
+        // 2. 查询 registrations 表并关联 events 详情
+        const { data: registrations, error: rError } = await supabase
             .from('registrations')
             .select(`
                 id,
                 status,
-                events (id, title, event_date, location, event_type),
-                participant_profile:profiles!profile_id (first_name, last_name)
+                profile_id,
+                events (*)
             `)
-            .or(`profile_id.eq.${uid},guardian_id.eq.${uid}`);
+            .in('profile_id', profileIds)
+            .neq('status', 'cancelled'); // 默认不显示已取消的
 
-        if (error) throw error;
+        if (rError) {
+            console.error('Error fetching registrations:', rError);
+            trainingContainer.innerHTML = '<div class="col-12"><p>Error loading your events.</p></div>';
+            return;
+        }
 
-        trainingContainer.innerHTML = "";
-        competitionContainer.innerHTML = "";
+        // 3. 格式化、排序与分类
+        const eventsList = registrations.map(reg => ({
+            regId: reg.id,
+            regStatus: reg.status,
+            participantName: profileMap[reg.profile_id] || "Unknown",
+            ...reg.events,
+        }));
 
-        let trainingCount = 0;
-        let competitionCount = 0;
+        eventsList.sort((a, b) => a.event_date.localeCompare(b.event_date));
 
-        regs.forEach(reg => {
-            // 统一使用小写判断，过滤掉已取消的报名
-            const status = (reg.status || "").toLowerCase();
-            if (status === 'cancelled') return;
+        const filtered = showExpired ? eventsList : eventsList.filter(e => e.event_date >= today);
+        const trainings = filtered.filter(e => e.event_type === 'training');
+        const competitions = filtered.filter(e => e.event_type === 'competition');
 
-            const event = reg.events;
-            const participant = reg.participant_profile; // 使用新的别名
+        // 4. 渲染
+        renderCards(trainings, trainingContainer, 'No upcoming training sessions found.');
+        renderCards(competitions, competitionContainer, 'No upcoming competitions found.');
+    };
 
-            // 日期对比逻辑
-            const eventDate = new Date(event.event_date);
-            const isExpired = eventDate < now;
+    function renderCards(events, container, emptyMsg) {
+        if (events.length === 0) {
+            container.innerHTML = `<div class="col-12"><p>${emptyMsg}</p></div>`;
+            return;
+        }
 
-            // 根据开关状态过滤：如果开关关闭且活动已过期，则跳过；反之亦然
-            if (showExpired !== isExpired) return;
+        container.innerHTML = events.map(event => {
+            const dateStr = new Date(event.event_date).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' });
+            const isExpired = event.event_date < new Date().toISOString().split('T')[0];
             
-            const cardHtml = `
-                <div class="col-6 col-12-medium">
-                    <section class="box">
+            return `
+                <div class="col-4 col-12-medium" style="display: flex;">
+                    <section class="box" style="display: flex; flex-direction: column; width: 100%;">
                         <h4>${event.title}</h4>
-                        <p><strong>Participant:</strong> ${participant.first_name} ${participant.last_name}<br />
-                        <strong>Date:</strong> ${new Date(event.event_date).toLocaleDateString()}<br />
-                        <strong>Location:</strong> ${event.location}<br />
-                        <strong>Status:</strong> <span style="color: ${getStatusColor(status)}; font-weight: bold; text-transform: capitalize;">${status}</span></p>
+                        <p style="margin-bottom: 1em;">
+                            <strong>Participant:</strong> <span style="color: #ed4933;">${event.participantName}</span><br />
+                            <strong>Date:</strong> ${dateStr}<br />
+                            <strong>Location:</strong> ${event.location}<br />
+                            <strong>Status:</strong> <span style="color: ${getStatusColor(event.regStatus)}; font-weight: bold; text-transform: capitalize;">${event.regStatus}</span>
+                        </p>
+                        <p style="flex-grow: 1; font-size: 0.9em; opacity: 0.8;">${event.description || ''}</p>
+                        <ul class="actions stacked" style="margin-bottom: 0;">
                         ${!isExpired ? `
-                            <ul class="actions stacked">
-                                <li><button class="button small" onclick="handleCancelRegistration('${reg.id}')">Cancel Registration</button></li>
-                            </ul>
-                        ` : '<p><em>This event has ended.</em></p>'}
+                            <li><button class="button small fit" onclick="handleCancelRegistration('${event.regId}')">Cancel Registration</button></li>
+                        ` : ''}
+                            <li><a href="../events.html" class="button alt small fit">View Event Page</a></li>
+                        </ul>
                     </section>
-                </div>`;
-
-            if (event.event_type === 'training') {
-                trainingContainer.innerHTML += cardHtml;
-                trainingCount++;
-            } else {
-                competitionContainer.innerHTML += cardHtml;
-                competitionCount++;
-            }
-        });
-
-        const emptyMsg = showExpired ? "No past events found." : "No upcoming events registered.";
-
-        if (trainingCount === 0) trainingContainer.innerHTML = `<p>${emptyMsg}</p>`;
-        if (competitionCount === 0) competitionContainer.innerHTML = `<p>${emptyMsg}</p>`;
-
-    } catch (error) {
-        console.error("Error loading my events:", error);
+                </div>
+            `;
+        }).join('');
     }
-}
 
-function getStatusColor(status) {
-    // 内部逻辑统一按小写处理
-    switch (status?.toLowerCase()) {
-        case 'paid': return 'green';
-        case 'pending': return '#e6b800';
-        case 'cancelled': return '#b30000';
-        default: return 'inherit';
+    function getStatusColor(status) {
+        switch (status?.toLowerCase()) {
+            case 'paid': return '#2ecc71';
+            case 'confirmed': return '#3498db';
+            case 'pending': return '#f1c40f';
+            default: return 'inherit';
+        }
     }
-}
 
-// 取消报名逻辑
-window.handleCancelRegistration = async function(regId) {
-    const confirmed = await showConfirm(
-        "Cancel Registration",
-        "Are you sure you want to cancel this registration? This action cannot be undone."
-    );
+    window.handleCancelRegistration = async function(regId) {
+        const confirmed = await showConfirm(
+            "Cancel Registration",
+            "Are you sure you want to cancel this registration? This action cannot be undone."
+        );
 
-    if (confirmed) {
-        const { error } = await supabase
-            .from('registrations')
-            .update({ status: 'cancelled' }) // 统一改为小写
-            .eq('id', regId);
+        if (!confirmed) return;
+
+        try {
+            const { error } = await supabase
+                .from('registrations')
+                .update({ status: 'cancelled' })
+                .eq('id', regId);
+                
+            if (error) throw error;
             
-        if (error) {
-            showNotification("Failed to cancel: " + error.message, "error");
-        } else {
             showNotification("Registration cancelled successfully.", "success");
-            
-            // 查找当前页面所属的 UID (从 URL 或当前会话)
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetUid = urlParams.get('id');
-            
-            if (targetUid) {
-                loadMyEvents(targetUid);
-            } else {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.user) loadMyEvents(session.user.id);
-            }
+            fetchMyEvents();
+        } catch (err) {
+            showNotification("Failed to cancel: " + err.message, "error");
         }
-    }
-};
+    };
 
-// 监听登录状态
-supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
-        // 修正：优先使用 URL 中的 id 参数（查看家人活动），否则使用当前用户 ID
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetUid = urlParams.get('id') || session.user.id;
-        
-        loadMyEvents(targetUid);
-
-        // 绑定切换开关事件，一旦变化就重新加载列表
-        const toggle = document.getElementById("showExpiredToggle");
-        if (toggle && !toggle.dataset.listenerAttached) {
-            toggle.addEventListener("change", () => loadMyEvents(targetUid));
-            toggle.dataset.listenerAttached = "true";
-        }
-    }
-});
+    document.addEventListener('DOMContentLoaded', fetchMyEvents);
+    document.getElementById('showExpiredToggle')?.addEventListener('change', fetchMyEvents);
+})();

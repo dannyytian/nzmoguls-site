@@ -72,37 +72,8 @@
 				<header class="major special">
 					<h2>Upcoming Events</h2>
 				</header>
-				<div class="row">
-					<div class="col-4 col-12-medium">
-						<section class="box">
-							<h3>Winter Moguls Camp</h3>
-							<p><strong>July 3–7, 2026</strong><br />Cardrona Alpine Resort</p>
-							<p>Intensive moguls training for intermediate and advanced athletes.</p>
-							<ul class="actions stacked">
-								<li><a href="events.html" class="button small">Details</a></li>
-							</ul>
-						</section>
-					</div>
-					<div class="col-4 col-12-medium">
-						<section class="box">
-							<h3>Junior Moguls Series</h3>
-							<p><strong>August 10, 2026</strong><br />The Remarkables</p>
-							<p>First round of the national junior moguls competition.</p>
-							<ul class="actions stacked">
-								<li><a href="events.html" class="button small">Details</a></li>
-							</ul>
-						</section>
-					</div>
-					<div class="col-4 col-12-medium">
-						<section class="box">
-							<h3>Club Training Day</h3>
-							<p><strong>June 14, 2026</strong><br />Cardrona</p>
-							<p>Weekly club training session for all levels.</p>
-							<ul class="actions stacked">
-								<li><a href="events.html" class="button small">Details</a></li>
-							</ul>
-						</section>
-					</div>
+				<div class="row" id="upcoming-events-list">
+					<p style="text-align: center; width: 100%;">Loading events...</p>
 				</div>
 				<ul class="actions special">
 					<li><a href="events.html" class="button">View All Events</a></li>
@@ -118,30 +89,7 @@
 				</header>
 				<div class="box alt">
 					<div class="row gtr-50 gtr-uniform" id="gallery-grid">
-						<div class="col-4">
-							<span class="image fit">
-								<picture>
-									<source srcset="gallery/thumbs/pic01.webp" type="image/webp">
-									<img src="gallery/thumbs/pic01.jpg" data-full="gallery/pic01.webp" alt="Moguls 1" style="cursor: pointer;" />
-								</picture>
-							</span>
-						</div>
-						<div class="col-4">
-							<span class="image fit">
-								<picture>
-									<source srcset="gallery/thumbs/pic02.webp" type="image/webp">
-									<img src="gallery/thumbs/pic02.jpg" data-full="gallery/pic02.webp" alt="Moguls 2" style="cursor: pointer;" />
-								</picture>
-							</span>
-						</div>
-						<div class="col-4">
-							<span class="image fit">
-								<picture>
-									<source srcset="gallery/thumbs/pic03.webp" type="image/webp">
-									<img src="gallery/thumbs/pic03.jpg" data-full="gallery/pic03.webp" alt="Moguls 3" style="cursor: pointer;" />
-								</picture>
-							</span>
-						</div>
+						<!-- Photos will be loaded here from Supabase -->
 					</div>
 				</div>
 				<ul class="actions special">
@@ -183,5 +131,6 @@
 	<script src="assets/js/supabase-init.js"></script>
 	<script src="assets/js/auth.js"></script>
 	<script src="assets/js/gallery-handler.js"></script>
+	<script src="assets/js/events.js"></script>
 </body>
 </html>

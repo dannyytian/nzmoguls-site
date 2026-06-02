@@ -5,8 +5,58 @@
 (function() {
     const initGallery = () => {
         const galleryGrid = document.getElementById('gallery-grid');
-        if (!galleryGrid) return;
+        const resultsTable = document.getElementById('results-table-body');
 
+        // 1. 加载照片墙数据
+        if (galleryGrid) {
+            fetchGalleries(galleryGrid);
+        }
+
+        // 2. 加载比赛成绩数据
+        if (resultsTable) {
+            fetchResults(resultsTable);
+        }
+
+        // 3. 现有的点击放大逻辑 (保持不变，利用事件委托处理动态生成的图片)
+        setupLightbox(galleryGrid);
+    };
+
+    async function fetchGalleries(container) {
+        const { data, error } = await supabase.from('galleries').select('*').order('display_order', { ascending: true });
+        if (error) return console.error('Error fetching gallery:', error);
+
+        container.innerHTML = data.map(item => `
+            <div class="col-4 col-6-small">
+                <span class="image fit">
+                    <picture>
+                        <source srcset="${item.thumbnail_url}" type="image/webp">
+                        <img src="${item.thumbnail_url}" data-full="${item.image_url}" alt="${item.alt_text}" style="cursor: pointer;" />
+                    </picture>
+                </span>
+            </div>
+        `).join('');
+    }
+
+    async function fetchResults(container) {
+        const { data, error } = await supabase.from('results').select('*').order('event_date', { ascending: false });
+        if (error) return console.error('Error fetching results:', error);
+
+        container.innerHTML = data.map(row => {
+            const eventDate = row.event_date ? new Date(row.event_date).toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+            return `
+                <tr>
+                    <td>${row.event_name}</td>
+                    <td>${row.athlete_name}</td>
+                    <td>${row.category}</td>
+                    <td>${row.result_text}</td>
+                    <td>${eventDate}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function setupLightbox(galleryGrid) {
+        if (!galleryGrid) return;
         galleryGrid.addEventListener('click', (e) => {
             const target = e.target;
             
@@ -37,7 +87,7 @@
                 setTimeout(() => container.classList.add('visible'), 10);
             }
         });
-    };
+    }
 
     window.closeLightbox = function() {
         const container = document.getElementById('modal-container');

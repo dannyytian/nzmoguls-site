@@ -1,254 +1,193 @@
-// events.js
-// 依赖：supabase-init.js + auth.js 已经加载
+/**
+ * Events Handler
+ * 从 Supabase 加载活动数据并渲染
+ */
+(function() {
+    const fetchEvents = async () => {
+        const upcomingContainer = document.getElementById('upcoming-events-list');
+        const trainingTable = document.getElementById('training-schedule-body');
+        const competitionCalendar = document.getElementById('competition-calendar-list');
 
-// 监听登录状态并加载数据
-supabase.auth.onAuthStateChange(async (event, session) => {
-    if (!session?.user) {
-        window.location.href = "membership.html";
-        return;
-    }
+        // 1. 检查当前用户的登录状态
+        const { data: { session } } = await supabase.auth.getSession();
 
-    console.log("User logged in:", session.user.id);
-    loadEventsFromSupabase(session.user.id);
-});
+        const today = new Date().toISOString().split('T')[0];
 
-// 加载赛事列表（Supabase版）
-async function loadEventsFromSupabase(uid) {
-    const upcomingContainer = document.getElementById("upcoming-events-list");
-    const scheduleBody = document.getElementById("training-schedule-body");
-
-    if (!upcomingContainer || !scheduleBody) return;
-
-    try {
-        // 仅获取已发布的赛事
-        const { data: events, error } = await supabase
-            .from('events')
-            .select('*')
-            .eq('is_published', true)
-            .order('event_date', { ascending: true });
-
-        if (error) throw error;
-
-        if (events.length === 0) {
-            upcomingContainer.innerHTML = "<p>No events available.</p>";
-            return;
-        }
-
-        upcomingContainer.innerHTML = "";
-        scheduleBody.innerHTML = "";
-
-        events.forEach((event) => {
-            if (event.event_type === "competition") {
-                const col = document.createElement("div");
-                col.className = "col-4 col-12-medium";
-                col.innerHTML = `
-                    <section class="box">
-                        <h4>${event.title}</h4>
-                        <p><strong>${new Date(event.event_date).toLocaleDateString()}</strong><br />${event.location}</p>
-                        <p>${event.description || ''}</p>
-                        <ul class="actions stacked">
-                            <li><button class="button small register-btn" data-id="${event.id}">Register</button></li>
-                        </ul>
-                    </section>`;
-                upcomingContainer.appendChild(col);
-            } else if (event.event_type === "training") {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${event.event_date || ''}</td>
-                    <td>${event.location}</td>
-                    <td>${event.price > 0 ? '$' + event.price : 'Free'}</td>
-                    <td>${event.capacity || 'Open'}</td>
-                    <td><button class="button small register-btn" data-id="${event.id}">Join</button></td>`;
-                scheduleBody.appendChild(row);
-            }
-        });
-
-        bindRegisterButtons(uid);
-
-    } catch (error) {
-        console.error("Error loading events:", error);
-        upcomingContainer.innerHTML = "<p>Failed to load events.</p>";
-    }
-}
-
-// 绑定报名按钮
-function bindRegisterButtons(uid) {
-    const buttons = document.querySelectorAll(".register-btn");
-
-    buttons.forEach((btn) => {
-        btn.addEventListener("click", async () => {
-            const eventId = btn.getAttribute("data-id");
-            await registerForEvent(uid, eventId);
-        });
-    });
-}
-
-// 报名赛事（Supabase版，含业务逻辑）
-async function registerForEvent(uid, eventId) {
-    try {
-        // 获取赛事基本信息用于确认弹窗文案
-        const { data: eventInfo } = await supabase
-            .from('events')
-            .select('title')
-            .eq('id', eventId)
-            .single();
-        
-        const eventTitle = eventInfo?.title || "this event";
-
-        // 1. 获取当前用户 profile
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', uid)
-            .single();
-            
-        if (profileError) throw profileError;
-
-        // 2. 检查是否重复报名
-        const { data: existing, error: checkError } = await supabase
-            .from('registrations')
-            .select('id')
-            .eq('event_id', eventId)
-            .eq('profile_id', uid)
-            .maybeSingle();
-
-        if (existing) {
-            showNotification("You have already registered for this event.", "info");
-            return;
-        }
-
-        let targetProfileId = uid;
-        let guardianId = null;
-
-        // 3. 监护人业务逻辑：获取关联的孩子列表
-        if (profile.user_type === 'guardian' && profile.family_id) {
-            const { data: children, error: childrenError } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name')
-                .eq('family_id', profile.family_id)
-                .eq('user_type', 'participant');
-
-            if (childrenError) throw childrenError;
-
-            // 如果有孩子，弹出选择框
-            if (children && children.length > 0) {
-                const selectedId = await showParticipantSelector(children);
-                if (!selectedId) return; // 用户取消了选择
-
-                if (selectedId !== 'self') {
-                    targetProfileId = selectedId;
-                    guardianId = uid; // 当前登录的监护人 ID
-                }
-                // 注意：showParticipantSelector 内部已有确认按钮，无需再次 confirm
-            } else {
-                // 监护人身份但尚未添加任何家庭成员，为其自己报名时增加确认
-                const confirmed = await showConfirm("Confirm Registration", `Register yourself for "${eventTitle}"?`);
-                if (!confirmed) return;
-            }
-        } else {
-            // 普通独立成员，直接进行二次确认
-            const confirmed = await showConfirm("Confirm Registration", `Are you sure you want to register for "${eventTitle}"?`);
-            if (!confirmed) return;
-        }
-
-        // 如果是为孩子报名，再次检查孩子是否已报名该赛事
-        if (targetProfileId !== uid) {
-            const { data: childExisting } = await supabase
+        // 获取当前用户已报名的 event_id 列表，避免重复渲染
+        let myRegs = [];
+        if (session) {
+            const { data: regs } = await supabase
                 .from('registrations')
-                .select('id')
-                .eq('event_id', eventId)
-                .eq('profile_id', targetProfileId)
-                .maybeSingle();
+                .select('event_id')
+                .eq('profile_id', session.user.id)
+                .neq('status', 'cancelled');
+            myRegs = regs?.map(r => r.event_id) || [];
+        }
 
-            if (childExisting) {
-                showNotification("This participant is already registered for this event.", "info");
-                return;
+        // 1. 加载“即将到来的活动” (针对首页 index.html 和活动页 events.html 的网格部分)
+        if (upcomingContainer) {
+            // 如果在首页，仅显示 3 个预览；如果在活动页，可以显示更多
+            const isHomePage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname === '';
+            
+            let query = supabase
+                .from('events')
+                .select('*')
+                .eq('is_published', true)
+                .gte('event_date', today)
+                .order('event_date', { ascending: true });
+
+            if (isHomePage) {
+                query = query.limit(3);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Error fetching events:', error);
+                upcomingContainer.innerHTML = '<p>Unable to load events at this time.</p>';
+            } else if (data.length === 0) {
+                upcomingContainer.innerHTML = '<p>No upcoming events at the moment. Check back soon!</p>';
+            } else {
+                upcomingContainer.innerHTML = data.map(event => {
+                    const dateObj = new Date(event.event_date);
+                    const dateStr = dateObj.toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' });
+                    
+                    return `
+                        <div class="col-4 col-12-medium" style="display: flex;">
+                            <section class="box" style="display: flex; flex-direction: column; width: 100%;">
+                                <h3>${event.title}</h3>
+                                <p><strong>${dateStr}</strong><br />${event.location}</p>
+                                <p style="flex-grow: 1;">${event.description || ''}</p>
+                                <ul class="actions stacked" style="margin-bottom: 0;">
+                                    <li><a href="events.html" class="button small">Details</a></li>
+                                </ul>
+                            </section>
+                        </div>
+                    `;
+                }).join('');
             }
         }
 
-        const registrationData = {
-            event_id: eventId,
-            profile_id: targetProfileId,
-            guardian_id: guardianId,
-            status: 'pending'
-        };
+        // 2. 加载“训练日程” (专门针对 events.html 里的表格)
+        if (trainingTable) {
+            const { data, error } = await supabase
+                .from('events')
+                .select('*')
+                .eq('event_type', 'training')
+                .eq('is_published', true)
+                .gte('event_date', today)
+                .order('event_date', { ascending: true });
 
-        const { data: newReg, error: regError } = await supabase
-            .from('registrations')
-            .insert([registrationData])
-            .select()
-            .single();
+            if (error) {
+                console.error('Error fetching training schedule:', error);
+                trainingTable.innerHTML = '<tr><td colspan="5">Unable to load schedule.</td></tr>';
+            } else if (data.length === 0) {
+                trainingTable.innerHTML = '<tr><td colspan="5">No scheduled training sessions at this time.</td></tr>';
+            } else {
+                trainingTable.innerHTML = data.map(event => {
+                    const dateObj = new Date(event.event_date);
+                    const dateStr = dateObj.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' });
+                    
+                    // 格式化时间：从 '09:00:00' 转换为 '09:00'
+                    const timeStr = event.start_time ? event.start_time.substring(0, 5) : 'TBA';
 
-        if (regError) throw regError;
+                    return `
+                        <tr>
+                            <td style="vertical-align: middle;">${dateStr}</td>
+                            <td style="vertical-align: middle;">${event.location}</td>
+                            <td style="vertical-align: middle;">${event.target_level || 'All Levels'}</td> 
+                            <td style="vertical-align: middle;">${timeStr}</td>
+                            <td style="vertical-align: middle;">
+                                ${session ? 
+                                    (myRegs.includes(event.id) ? 
+                                        '<span class="button small disabled">Registered</span>' : 
+                                        `<button class="button small" onclick="handleEventRegistration('${event.id}', this)">Register</button>`
+                                    ) : ''
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
 
-        // 4. 签署免责声明：记录签署时的快照签名
-        // 获取当前签署人的姓名快照
-        const signerName = (profile.first_name + ' ' + profile.last_name).trim();
+        // 3. 加载“比赛日历” (针对 events.html 里的 Competition Calendar，按月分组)
+        if (competitionCalendar) {
+            const { data, error } = await supabase
+                .from('events')
+                .select('*')
+                .eq('event_type', 'competition')
+                .eq('is_published', true)
+                .gte('event_date', today)
+                .order('event_date', { ascending: true });
 
-        const { error: agreeError } = await supabase
-            .from('legal_agreements')
-            .insert([{
-                registration_id: newReg.id,
-                profile_id: targetProfileId,
-                signer_id: uid,
-                signature_name: signerName, // 记录签署当时的姓名快照
-                agreement_type: 'waiver',
-                is_accepted: true
-            }]);
+            if (error) {
+                console.error('Error fetching competition calendar:', error);
+                competitionCalendar.innerHTML = '<p>Unable to load calendar.</p>';
+            } else if (data.length === 0) {
+                competitionCalendar.innerHTML = '<p>No scheduled competitions at this time.</p>';
+            } else {
+                // 按 "Month Year" 进行分组
+                const groups = {};
+                data.forEach(event => {
+                    const date = new Date(event.event_date);
+                    const monthYear = date.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' });
+                    if (!groups[monthYear]) groups[monthYear] = [];
+                    groups[monthYear].push(event);
+                });
 
-        if (agreeError) throw agreeError;
+                competitionCalendar.innerHTML = Object.entries(groups).map(([monthYear, events]) => `
+                    <div class="col-6 col-12-medium">
+                        <h4>${monthYear}</h4>
+                        <ul>
+                            ${events.map(e => {
+                                const d = new Date(e.event_date).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' });
+                                return `<li>${e.title} — ${d}</li>`;
+                            }).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+            }
+        }
+    };
 
-        showNotification("Registration successful!", "success");
+    /**
+     * 处理直接报名逻辑
+     * @param {string} eventId 
+     * @param {HTMLElement} btn 
+     */
+    window.handleEventRegistration = async function(eventId, btn) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-    } catch (error) {
-        console.error("Error registering:", error);
-        showNotification(error.message || "Failed to register.", "error");
-    }
-}
+        // 1. 按钮特效：禁用并显示加载中
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Registering...";
+        btn.classList.add('disabled'); // 增加视觉禁用感
 
-// 辅助函数：显示参与者选择下拉框
-async function showParticipantSelector(participants) {
-    return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(30,37,43,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(4px);";
-        
-        const content = document.createElement('div');
-        content.className = 'box';
-        content.style = "background:#2e3842; padding:3em; max-width:500px; width:90%; text-align:center; border: solid 2px #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);";
-        
-        let optionsHtml = participants.map(p => `<option value="${p.id}">${p.first_name} ${p.last_name}</option>`).join('');
-        
-        content.innerHTML = `
-            <header class="major" style="margin-bottom: 2em;">
-                <h3 style="border-bottom: solid 2px #fff; display: inline-block; padding-bottom: 0.5em; margin-bottom: 0.5em;">Registration</h3>
-                <p style="font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.7);">Select Participant</p>
-            </header>
-            <form style="margin-bottom: 2.5em;">
-                <div class="col-12">
-                    <select id="childSelector" style="background-color: rgba(144, 144, 144, 0.25); color: #fff;">
-                        <option value="self">Myself (Account Holder)</option>
-                        ${optionsHtml}
-                    </select>
-                </div>
-            </form>
-            <ul class="actions fit">
-                <li><button id="confirmSelect" class="button primary small fit">Confirm & Register</button></li>
-                <li><button id="cancelSelect" class="button small fit">Cancel</button></li>
-            </ul>
-        `;
-        
-        overlay.appendChild(content);
-        document.body.appendChild(overlay);
-        
-        document.getElementById('confirmSelect').onclick = () => {
-            const val = document.getElementById('childSelector').value;
-            document.body.removeChild(overlay);
-            resolve(val);
-        };
-        
-        document.getElementById('cancelSelect').onclick = () => {
-            document.body.removeChild(overlay);
-            resolve(null);
-        };
-    });
-}
+        try {
+            const { error } = await supabase
+                .from('registrations')
+                .insert([{
+                    event_id: eventId,
+                    profile_id: session.user.id,
+                    status: 'pending' // 默认为 pending，直到管理员确认或完成支付
+                }]);
+
+            if (error) throw error;
+
+            // 2. 成功后更新 UI
+            btn.innerText = "Registered";
+            showNotification("Successfully registered for the session!", "success");
+        } catch (err) {
+            console.error("Registration failed:", err);
+            showNotification("Failed to register: " + err.message, "error");
+            btn.disabled = false;
+            btn.innerText = originalText;
+            btn.classList.remove('disabled');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', fetchEvents);
+})();
