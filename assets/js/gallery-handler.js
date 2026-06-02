@@ -27,10 +27,13 @@
 
         container.innerHTML = data.map(item => `
             <div class="col-4 col-6-small">
-                <span class="image fit">
+                <span class="image fit gallery-frame">
                     <picture>
                         <source srcset="${item.thumbnail_url}" type="image/webp">
-                        <img src="${item.thumbnail_url}" data-full="${item.image_url}" alt="${item.alt_text}" style="cursor: pointer;" />
+                        <img src="${item.thumbnail_url}" 
+                             data-full="${item.image_url}" 
+                             alt="${item.alt_text}"
+                             class="gallery-img" />
                     </picture>
                 </span>
             </div>
