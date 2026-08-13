@@ -2,17 +2,32 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # 每天的 0点 和 12点（UTC时间）自动运行一次，也就是每12小时唤醒一次
-    - cron: '0 */12 * * *'
-  # 允许你在 GitHub 页面上手动点击按钮触发运行，方便测试
-  workflow_dispatch: 
+    # 每天 UTC 3点执行一次（北京时间早上11点），一天一次足够触发活跃判定
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 jobs:
   ping-db:
     runs-on: ubuntu-latest
     steps:
-      - name: Send API Request to Supabase
+      - name: Update keepalive row (write activity)
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X PATCH "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive?id=eq.1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            -d '{"pinged_at": "'"$(date -u +%FT%TZ)"'", "ping_count": '"$RANDOM"'}')
+
+          echo "HTTP Status: $http_code"
+          echo "Response body:"
+          cat /tmp/response.json
+          echo ""
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Keepalive ping failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Keepalive ping succeeded"
